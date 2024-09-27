@@ -1,0 +1,22 @@
+{
+  "name": "jobster",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --no-warnings=ExperimentalWarning --loader ts-node/esm lib/index.ts",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/eventemitter2": "^4.1.0",
+    "@types/node": "^22.7.4",
+    "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "eventemitter2": "^6.4.9"
+  }
+}
