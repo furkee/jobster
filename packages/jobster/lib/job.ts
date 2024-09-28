@@ -22,9 +22,13 @@ export class Job<T extends Record<string, unknown> = Record<string, unknown>> {
   }
 
   fail() {
-    this.status = 'fail';
     this.retries += 1;
     this.lastRunAt = new Date();
-    this.nextRunAfter = new Date(Date.now() + Math.pow(2, this.retries) * 1000);
+
+    if (this.retries >= 7) {
+      this.status = 'fail';
+    } else {
+      this.nextRunAfter = new Date(Date.now() + Math.pow(2, this.retries) * 1000);
+    }
   }
 }

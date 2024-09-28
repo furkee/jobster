@@ -1,27 +1,22 @@
-import EventEmitter from 'eventemitter2';
-
+import { EventEmitter } from './event-emitter.js';
 import { Job } from './job.js';
 import { MemoryStorage } from './storage/memory-storage.js';
+import { Worker } from './worker.js';
 
 export class Jobster {
   private jobEmitter = new EventEmitter();
-  private storage = new MemoryStorage(this.onJobAvailable.bind(this));
+  private storage = new MemoryStorage();
   private listeners = new Set();
+  private workers: Worker[];
 
-  constructor() {}
+  constructor() {
+    this.workers = [new Worker(this.storage, this.jobEmitter)];
+    this.workers.forEach((worker) => worker.start());
+  }
 
-  private async onJobAvailable(job: Job) {
-    try {
-      await this.jobEmitter.emitAsync(job.name, job.payload);
-      // storage should have success/fail that updates the job async
-      job.succeed();
-    } catch (e) {
-      console.error(e);
-      job.fail();
-      const timeout = Math.max(1000, (job.nextRunAfter?.getTime() || 0) - Date.now());
-      console.log(`Will retry the job ${job.name} with id ${job.id} in ${timeout} ms`);
-      setTimeout(() => this.onJobAvailable(job), timeout);
-    }
+  stop() {
+    this.workers.forEach((worker) => worker.stop());
+    this.jobEmitter.removeAllListeners();
   }
 
   listen(eventName: string, listener: (dto: Record<string, unknown>) => Promise<void>) {
