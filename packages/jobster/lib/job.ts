@@ -1,11 +1,13 @@
-export type JobStatus = 'created' | 'running' | 'success' | 'fail';
+export type JobStatus = 'pending' | 'running' | 'success' | 'failure';
 
 export class Job<T extends Record<string, unknown> = Record<string, unknown>> {
   readonly id = crypto.randomUUID();
-  status: JobStatus = 'created';
+  status: JobStatus = 'pending';
   retries: number = 0;
   lastRunAt: Date | null = null;
   nextRunAfter: Date | null = new Date();
+  createdAt = new Date();
+  updatedAt = new Date();
 
   constructor(
     readonly name: string,
@@ -13,22 +15,5 @@ export class Job<T extends Record<string, unknown> = Record<string, unknown>> {
   ) {
     this.name = name;
     this.payload = payload;
-  }
-
-  succeed() {
-    this.status = 'success';
-    this.lastRunAt = new Date();
-    this.nextRunAfter = null;
-  }
-
-  fail() {
-    this.retries += 1;
-    this.lastRunAt = new Date();
-
-    if (this.retries >= 7) {
-      this.status = 'fail';
-    } else {
-      this.nextRunAfter = new Date(Date.now() + Math.pow(2, this.retries) * 1000);
-    }
   }
 }
