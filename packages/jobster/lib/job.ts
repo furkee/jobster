@@ -1,6 +1,8 @@
 export type JobStatus = 'pending' | 'running' | 'success' | 'failure';
 
 export class Job<T extends Record<string, unknown> = Record<string, unknown>> {
+  name: string;
+  payload: T;
   readonly id = crypto.randomUUID();
   status: JobStatus = 'pending';
   retries: number = 0;
@@ -9,10 +11,7 @@ export class Job<T extends Record<string, unknown> = Record<string, unknown>> {
   createdAt = new Date();
   updatedAt = new Date();
 
-  constructor(
-    readonly name: string,
-    readonly payload: T,
-  ) {
+  constructor(name: string, payload: T) {
     this.name = name;
     this.payload = payload;
   }

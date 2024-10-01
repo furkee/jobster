@@ -1,7 +1,8 @@
-import { EventEmitter } from './event-emitter.js';
-import { Job } from './job.js';
-import { IStorage } from './storage/storage.interface.js';
-import { Worker, WorkerOptions } from './worker.js';
+import eventemitter from 'eventemitter2';
+
+import { Job } from './job.ts';
+import { type IStorage } from './storage/storage.interface.ts';
+import { Worker, type WorkerOptions } from './worker.ts';
 
 export type JobsterOptions = {
   storage: IStorage;
@@ -11,7 +12,7 @@ export type JobsterOptions = {
 };
 
 export class Jobster {
-  #jobEmitter = new EventEmitter();
+  #jobEmitter = new eventemitter.EventEmitter2();
   #workers: Worker[];
   #storage: IStorage;
 

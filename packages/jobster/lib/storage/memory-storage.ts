@@ -1,6 +1,5 @@
-import { Job } from '@/job.js';
-
-import { IStorage } from './storage.interface.js';
+import { Job } from '../job.ts';
+import { type IStorage } from './storage.interface.ts';
 
 export class MemoryStorage implements IStorage {
   #jobs = new Map<string, Job>();
@@ -12,12 +11,14 @@ export class MemoryStorage implements IStorage {
   async success(job: Job) {
     job.status = 'success';
     job.lastRunAt = new Date();
+    job.createdAt = new Date();
     job.nextRunAfter = null;
   }
 
   async fail(job: Job) {
     job.retries += 1;
     job.lastRunAt = new Date();
+    job.createdAt = new Date();
 
     if (job.retries >= 7) {
       job.status = 'failure';

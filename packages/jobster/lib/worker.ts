@@ -1,5 +1,6 @@
-import { EventEmitter } from './event-emitter.js';
-import { IStorage } from './storage/storage.interface.js';
+import { type EventEmitter2 } from 'eventemitter2';
+
+import { type IStorage } from './storage/storage.interface.ts';
 
 export type WorkerOptions = {
   /** @default 5000 */
@@ -10,12 +11,16 @@ export class Worker {
   #timer: NodeJS.Timeout | undefined = undefined;
   #status: 'running' | 'idling' = 'idling';
   #pollFrequency = 5000;
+  readonly storage: IStorage;
+  readonly emitter: InstanceType<typeof EventEmitter2>;
 
   constructor(
-    readonly storage: IStorage,
-    readonly emitter: InstanceType<typeof EventEmitter>,
+    storage: IStorage,
+    emitter: InstanceType<typeof EventEmitter2>,
     { pollFrequency = 5000 }: WorkerOptions = {},
   ) {
+    this.storage = storage;
+    this.emitter = emitter;
     this.#pollFrequency = pollFrequency;
   }
 

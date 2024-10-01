@@ -1,4 +1,4 @@
-import { Job } from '@/job.js';
+import { Job } from '../job.ts';
 
 export interface IStorage {
   persist(job: Job): Promise<void>;

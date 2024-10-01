@@ -4,16 +4,15 @@
   "main": "lib/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "node --watch --no-warnings=ExperimentalWarning --loader ts-node/esm lib/main.ts",
-    "start": "node build/index.js",
-    "build": "tsc"
+    "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types lib/main.ts",
+    "start": "node build/main.js",
+    "build": "rm -rf build || true && tsc"
   },
   "dependencies": {
     "eventemitter2": "^6.4.9"
   },
   "devDependencies": {
     "@types/eventemitter2": "^4.1.0",
-    "@types/node": "^22.7.4",
-    "ts-node": "^10.9.2"
+    "@types/node": "^22.7.4"
   }
 }

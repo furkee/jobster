@@ -1,3 +1,3 @@
-export { Jobster } from './jobster.js';
-export { type IStorage } from './storage/storage.interface.js';
-export { MemoryStorage } from './storage/memory-storage.js';
+export { Jobster } from './jobster.ts';
+export { type IStorage } from './storage/storage.interface.ts';
+export { MemoryStorage } from './storage/memory-storage.ts';

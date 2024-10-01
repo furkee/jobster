@@ -5,14 +5,13 @@
     "moduleResolution": "NodeNext",
     "lib": ["ESNext"],
     "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "importHelpers": true,
     "sourceMap": true,
     "outDir": "./build",
     "baseUrl": "./",
-    "paths": {
-      "@/*": ["./lib/*"]
-    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

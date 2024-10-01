@@ -1,6 +1,6 @@
-import { Job } from './job.js';
-import { Jobster } from './jobster.js';
-import { MemoryStorage } from './storage/memory-storage.js';
+import { Job } from './job.ts';
+import { Jobster } from './jobster.ts';
+import { MemoryStorage } from './storage/memory-storage.ts';
 
 const jobster = new Jobster({ storage: new MemoryStorage() });
 
