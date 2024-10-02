@@ -1,6 +1,6 @@
 {
-  "name": "jobster",
-  "version": "0.0.1",
+  "name": "postgres",
+  "version": "1.0.0",
   "main": "lib/index.ts",
   "type": "module",
   "scripts": {
@@ -8,11 +8,10 @@
     "start": "node build/main.js",
     "build": "rm -rf build || true && tsc"
   },
-  "dependencies": {
-    "eventemitter2": "^6.4.9"
+  "peerDependencies": {
+    "jobster": "workspace:*"
   },
   "devDependencies": {
-    "@types/eventemitter2": "^4.1.0",
     "@types/node": "^22.7.4"
   }
 }
