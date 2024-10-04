@@ -1,8 +1,17 @@
 {
-  "name": "jobster",
+  "name": "@jobster/core",
   "version": "0.0.1",
   "main": "lib/index.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/index.ts",
+        "default": "./lib/index.ts"
+      },
+      "require": "./lib/index.ts"
+    }
+  },
   "scripts": {
     "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types lib/main.ts",
     "start": "node build/main.js",
@@ -12,7 +21,6 @@
     "eventemitter2": "^6.4.9"
   },
   "devDependencies": {
-    "@types/eventemitter2": "^4.1.0",
     "@types/node": "^22.7.4"
   }
 }

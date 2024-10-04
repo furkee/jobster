@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/.cache/social-media/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=dbadmin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=jobster

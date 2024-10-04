@@ -1,17 +1,29 @@
 {
-  "name": "postgres",
+  "name": "@jobster/postgres",
   "version": "1.0.0",
   "main": "lib/index.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/index.ts",
+        "default": "./lib/index.ts"
+      },
+      "require": "./lib/index.ts"
+    }
+  },
   "scripts": {
     "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types lib/main.ts",
     "start": "node build/main.js",
     "build": "rm -rf build || true && tsc"
   },
   "peerDependencies": {
-    "jobster": "workspace:*"
+    "@jobster/core": "^0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^22.7.4"
+    "@types/node": "^22.7.4",
+    "@types/pg": "^8.11.10",
+    "@jobster/core": "workspace:*",
+    "pg": "^8.13.0"
   }
 }

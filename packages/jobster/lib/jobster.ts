@@ -4,24 +4,25 @@ import { Job } from './job.ts';
 import { type IStorage } from './storage/storage.interface.ts';
 import { Worker, type WorkerOptions } from './worker.ts';
 
-export type JobsterOptions = {
-  storage: IStorage;
+export type JobsterOptions<Transaction> = {
+  storage: IStorage<Transaction>;
   /** @default 1000 */
   numWorkers?: number;
   workerOptions?: WorkerOptions;
 };
 
-export class Jobster {
+export class Jobster<Transaction> {
   #jobEmitter = new eventemitter.EventEmitter2();
   #workers: Worker[];
-  #storage: IStorage;
+  #storage: IStorage<Transaction>;
 
-  constructor({ storage, numWorkers = 1, workerOptions }: JobsterOptions) {
+  constructor({ storage, numWorkers = 1, workerOptions }: JobsterOptions<Transaction>) {
     this.#storage = storage;
     this.#workers = new Array(numWorkers).fill(0).map(() => new Worker(this.#storage, this.#jobEmitter, workerOptions));
   }
 
-  start() {
+  async start(transaction: Transaction) {
+    await this.#storage.initialize(transaction);
     this.#workers.forEach((worker) => worker.start());
   }
 
@@ -36,7 +37,7 @@ export class Jobster {
     this.#jobEmitter.on(eventName, listener);
   }
 
-  async queue(job: Job) {
-    await this.#storage.persist(job);
+  async queue(job: Job, transaction: Transaction) {
+    await this.#storage.persist(job, transaction);
   }
 }

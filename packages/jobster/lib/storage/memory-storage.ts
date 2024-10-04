@@ -1,8 +1,10 @@
 import { Job } from '../job.ts';
 import { type IStorage } from './storage.interface.ts';
 
-export class MemoryStorage implements IStorage {
+export class MemoryStorage implements IStorage<void> {
   #jobs = new Map<string, Job>();
+
+  async initialize(opts?: any) {}
 
   async persist(job: Job) {
     this.#jobs.set(job.id, job);

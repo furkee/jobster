@@ -1,10 +1,18 @@
-import { Job, Jobster } from 'jobster';
+import { Job, Jobster } from '@jobster/core';
+import pg from 'pg';
 
 import { PostgresStorage } from './postgres.storage.ts';
 
-const jobster = new Jobster({ storage: new PostgresStorage() });
-
 async function main() {
+  const pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
+  const client = await pool.connect();
+
+  const jobster = new Jobster({
+    storage: new PostgresStorage<typeof client>({ run: async (sql, client) => client.query(sql) }),
+  });
+
+  // await jobster.start(client);
+
   // jobster.listen('event', async (data: Record<string, unknown>) => {
   //   await new Promise((resolve, reject) => {
   //     console.log({ message: 'resolve', data });
@@ -19,14 +27,14 @@ async function main() {
     });
   });
 
-  await jobster.queue(new Job('event', { hello: 'world' }));
-
-  jobster.start();
+  try {
+    await client.query('BEGIN');
+    await jobster.queue(new Job('event', { hello: 'world' }), client);
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error(e);
+  }
 }
-
-process.on('SIGINT', () => {
-  jobster.stop();
-  process.exit(0);
-});
 
 main();

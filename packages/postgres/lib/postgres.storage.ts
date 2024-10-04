@@ -1,47 +1,54 @@
-import { type IStorage, Job } from 'jobster';
+import { type IStorage, Job, type RawQueryRunner } from '@jobster/core';
 
-export class PostgresStorage implements IStorage {
-  #jobs = new Map<string, Job>();
+export type PostgresStorageOptions<Transaction> = {
+  run: RawQueryRunner<Transaction>;
+};
 
-  async persist(job: Job) {
-    this.#jobs.set(job.id, job);
+const INIT_QUERY = /*sql*/ `
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'JobsterJobStatus') THEN
+    CREATE TYPE "JobsterJobStatus" AS ENUM ('pending', 'running', 'success', 'failure');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "JobsterJobs" (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(50) NOT NULL,
+  payload JSONB NOT NULL,
+  status JobsterJobStatus NOT NULL DEFAULT 'pending',
+  retries INTEGER NOT NULL DEFAULT 0,
+  "lastRunAt" TIMESTAMP WITH TIME ZONE,
+  "nextRunAfter" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
+export class PostgresStorage<Transaction> implements IStorage<Transaction> {
+  #options: PostgresStorageOptions<Transaction>;
+
+  constructor(opts: PostgresStorageOptions<Transaction>) {
+    this.#options = opts;
   }
 
-  async success(job: Job) {
-    job.status = 'success';
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
-    job.nextRunAfter = null;
+  async initialize(transaction: Transaction): Promise<void> {
+    await this.#options.run(INIT_QUERY, transaction);
   }
 
-  async fail(job: Job) {
-    job.retries += 1;
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
+  async persist(job: Job, transaction: Transaction) {
+    this.#options.run(`insert into`, transaction);
+  }
 
-    if (job.retries >= 7) {
-      job.status = 'failure';
-    } else {
-      job.status = 'pending';
-      job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * 1000);
-    }
+  async success(job: Job, transaction: Transaction) {
+    this.#options.run(`update set`, transaction);
+  }
+
+  async fail(job: Job, transaction: Transaction) {
+    this.#options.run(`update set`, transaction);
   }
 
   async getNextJob() {
-    const jobs = Array.from(this.#jobs.values())
-      .filter(
-        (job) =>
-          (job.status === 'pending' && job.nextRunAfter!.getTime() <= Date.now()) ||
-          (job.status === 'running' && Date.now() - job.updatedAt.getTime() > 10000),
-      )
-      .sort((a, b) => a.nextRunAfter!.getTime() - b.nextRunAfter!.getTime());
-    const job = jobs[0] || null;
-
-    if (job) {
-      job.status = 'running';
-      job.updatedAt = new Date();
-    }
-
-    return job;
+    return null;
   }
 }
