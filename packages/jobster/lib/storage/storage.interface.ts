@@ -5,7 +5,7 @@ export interface IStorage<Transaction> {
 
   persist(job: Job, transaction: Transaction): Promise<void>;
 
-  getNextJob(): Promise<Job | null>;
+  getNextJob(transaction: Transaction): Promise<Job | null>;
 
   success(job: Job, transaction: Transaction): Promise<void>;
 

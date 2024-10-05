@@ -1,29 +1,8 @@
-import { type IStorage, Job, type RawQueryRunner } from '@jobster/core';
+import { type IStorage, type ITransactionProvider, type Job } from '@jobster/core';
 
 export type PostgresStorageOptions<Transaction> = {
-  run: RawQueryRunner<Transaction>;
+  run: ITransactionProvider<Transaction>['run'];
 };
-
-const INIT_QUERY = /*sql*/ `
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'JobsterJobStatus') THEN
-    CREATE TYPE "JobsterJobStatus" AS ENUM ('pending', 'running', 'success', 'failure');
-  END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS "JobsterJobs" (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(50) NOT NULL,
-  payload JSONB NOT NULL,
-  status JobsterJobStatus NOT NULL DEFAULT 'pending',
-  retries INTEGER NOT NULL DEFAULT 0,
-  "lastRunAt" TIMESTAMP WITH TIME ZONE,
-  "nextRunAfter" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-`;
 
 export class PostgresStorage<Transaction> implements IStorage<Transaction> {
   #options: PostgresStorageOptions<Transaction>;
@@ -52,3 +31,24 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
     return null;
   }
 }
+
+const INIT_QUERY = /*sql*/ `
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'JobsterJobStatus') THEN
+    CREATE TYPE "JobsterJobStatus" AS ENUM ('pending', 'running', 'success', 'failure');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "JobsterJobs" (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(50) NOT NULL,
+  payload JSONB NOT NULL,
+  status JobsterJobStatus NOT NULL DEFAULT 'pending',
+  retries INTEGER NOT NULL DEFAULT 0,
+  "lastRunAt" TIMESTAMP WITH TIME ZONE,
+  "nextRunAfter" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;

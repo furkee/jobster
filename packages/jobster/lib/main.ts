@@ -1,10 +1,15 @@
 import { Job } from './job.ts';
 import { Jobster } from './jobster.ts';
+import { NoOpTransactionProvider } from './no-op-transaction-provider.ts';
 import { MemoryStorage } from './storage/memory-storage.ts';
 
-const jobster = new Jobster({ storage: new MemoryStorage() });
-
 async function main() {
+  const jobster = new Jobster<void>({
+    storage: new MemoryStorage(),
+    // @ts-ignore
+    transactionProvider: new NoOpTransactionProvider(),
+  });
+
   // jobster.listen('event', async (data: Record<string, unknown>) => {
   //   await new Promise((resolve, reject) => {
   //     console.log({ message: 'resolve', data });
@@ -23,10 +28,5 @@ async function main() {
 
   jobster.start();
 }
-
-process.on('SIGINT', () => {
-  jobster.stop();
-  process.exit(0);
-});
 
 main();

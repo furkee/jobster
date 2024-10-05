@@ -2,27 +2,35 @@ import eventemitter from 'eventemitter2';
 
 import { Job } from './job.ts';
 import { type IStorage } from './storage/storage.interface.ts';
+import { type ITransactionProvider } from './transaction-provider.interface.ts';
 import { Worker, type WorkerOptions } from './worker.ts';
 
 export type JobsterOptions<Transaction> = {
   storage: IStorage<Transaction>;
-  /** @default 1000 */
+  transactionProvider: ITransactionProvider<Transaction>;
+  /** @default 1 */
   numWorkers?: number;
-  workerOptions?: WorkerOptions;
+  workerOptions?: Omit<WorkerOptions<Transaction>, 'storage' | 'transactionProvider' | 'emitter'>;
 };
 
 export class Jobster<Transaction> {
   #jobEmitter = new eventemitter.EventEmitter2();
-  #workers: Worker[];
+  #workers: Worker<Transaction>[];
   #storage: IStorage<Transaction>;
+  #transactionProvider: ITransactionProvider<Transaction>;
 
-  constructor({ storage, numWorkers = 1, workerOptions }: JobsterOptions<Transaction>) {
+  constructor({ storage, transactionProvider, numWorkers = 1, workerOptions = {} }: JobsterOptions<Transaction>) {
+    this.#transactionProvider = transactionProvider;
     this.#storage = storage;
-    this.#workers = new Array(numWorkers).fill(0).map(() => new Worker(this.#storage, this.#jobEmitter, workerOptions));
+    this.#workers = new Array(numWorkers)
+      .fill(0)
+      .map(
+        () => new Worker({ storage: this.#storage, transactionProvider, emitter: this.#jobEmitter, ...workerOptions }),
+      );
   }
 
-  async start(transaction: Transaction) {
-    await this.#storage.initialize(transaction);
+  async start() {
+    await this.#transactionProvider.transaction((transaction) => this.#storage.initialize(transaction));
     this.#workers.forEach((worker) => worker.start());
   }
 

@@ -1,26 +1,28 @@
 import { type EventEmitter2 } from 'eventemitter2';
 
 import { type IStorage } from './storage/storage.interface.ts';
+import { type ITransactionProvider } from './transaction-provider.interface.ts';
 
-export type WorkerOptions = {
-  /** @default 5000 */
+export type WorkerOptions<Transaction> = {
+  storage: IStorage<Transaction>;
+  transactionProvider: ITransactionProvider<Transaction>;
+  emitter: InstanceType<typeof EventEmitter2>;
+  /** @default 1000 */
   pollFrequency?: number;
 };
 
-export class Worker {
+export class Worker<Transaction> {
   #timer: NodeJS.Timeout | undefined = undefined;
   #status: 'running' | 'idling' = 'idling';
   #pollFrequency = 5000;
-  readonly storage: IStorage;
-  readonly emitter: InstanceType<typeof EventEmitter2>;
+  #transactionProvider: ITransactionProvider<Transaction>;
+  #storage: IStorage<any>;
+  #emitter: InstanceType<typeof EventEmitter2>;
 
-  constructor(
-    storage: IStorage,
-    emitter: InstanceType<typeof EventEmitter2>,
-    { pollFrequency = 5000 }: WorkerOptions = {},
-  ) {
-    this.storage = storage;
-    this.emitter = emitter;
+  constructor({ storage, emitter, transactionProvider, pollFrequency = 1000 }: WorkerOptions<Transaction>) {
+    this.#storage = storage;
+    this.#emitter = emitter;
+    this.#transactionProvider = transactionProvider;
     this.#pollFrequency = pollFrequency;
   }
 
@@ -36,20 +38,24 @@ export class Worker {
     this.#status = 'running';
 
     while (this.#status === 'running') {
-      const job = await this.storage.getNextJob();
       const start = Date.now();
 
-      if (job) {
-        try {
-          await this.emitter.emitAsync(job.name, job.payload);
-          this.storage.success(job);
-        } catch (e) {
-          this.storage.fail(job);
+      await this.#transactionProvider.transaction(async (transaction) => {
+        const job = await this.#storage.getNextJob(transaction);
+
+        if (job) {
+          try {
+            await this.#emitter.emitAsync(job.name, job.payload);
+            await this.#storage.success(job, transaction);
+          } catch (e) {
+            await this.#storage.fail(job, transaction);
+          }
         }
-      }
+      });
 
       const runtime = Date.now() - start;
       const sleep = runtime > this.#pollFrequency ? 500 : this.#pollFrequency - runtime;
+
       await new Promise((r) => (this.#timer = setTimeout(r, sleep)));
     }
   }
