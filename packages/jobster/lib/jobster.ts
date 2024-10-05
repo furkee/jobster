@@ -1,7 +1,7 @@
 import eventemitter from 'eventemitter2';
 
 import { Job } from './job.ts';
-import { type IStorage } from './storage/storage.interface.ts';
+import { type IStorage } from './storage.interface.ts';
 import { type ITransactionProvider } from './transaction-provider.interface.ts';
 import { Worker, type WorkerOptions } from './worker.ts';
 

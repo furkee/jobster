@@ -1,4 +1,4 @@
-import { Job } from '../job.ts';
+import { Job } from './job.ts';
 import { type IStorage } from './storage.interface.ts';
 
 export class MemoryStorage implements IStorage<void> {

@@ -1,7 +1,7 @@
 import { Job } from './job.ts';
 import { Jobster } from './jobster.ts';
+import { MemoryStorage } from './memory-storage.ts';
 import { NoOpTransactionProvider } from './no-op-transaction-provider.ts';
-import { MemoryStorage } from './storage/memory-storage.ts';
 
 async function main() {
   const jobster = new Jobster<void>({

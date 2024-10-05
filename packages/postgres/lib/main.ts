@@ -1,7 +1,7 @@
 import { type ITransactionProvider, Job, Jobster } from '@jobster/core';
 import pg from 'pg';
 
-import { PostgresStorage } from './postgres.storage.ts';
+import { PostgresStorage } from './postgres-storage.ts';
 
 class PgTransactionProvider implements ITransactionProvider<pg.PoolClient> {
   readonly client: pg.PoolClient;

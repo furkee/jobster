@@ -1,6 +1,6 @@
 import { type EventEmitter2 } from 'eventemitter2';
 
-import { type IStorage } from './storage/storage.interface.ts';
+import { type IStorage } from './storage.interface.ts';
 import { type ITransactionProvider } from './transaction-provider.interface.ts';
 
 export type WorkerOptions<Transaction> = {

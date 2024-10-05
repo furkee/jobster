@@ -1,1 +1,1 @@
-export { PostgresStorage, type PostgresStorageOptions } from './postgres.storage.ts';
+export { PostgresStorage, type PostgresStorageOptions } from './postgres-storage.ts';
