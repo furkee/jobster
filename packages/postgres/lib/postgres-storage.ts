@@ -56,6 +56,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
     await this.#options.run(
       /* sql */ `
       INSERT INTO "JobsterJobs" (
+        id,
         name,
         payload,
         status,
@@ -73,10 +74,12 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
         ${this.#options.getQueryPlaceholder(4)},
         ${this.#options.getQueryPlaceholder(5)},
         ${this.#options.getQueryPlaceholder(6)},
-        ${this.#options.getQueryPlaceholder(7)}
+        ${this.#options.getQueryPlaceholder(7)},
+        ${this.#options.getQueryPlaceholder(8)}
       );
       `,
       [
+        job.id,
         job.name,
         JSON.stringify(job.payload),
         job.status,
@@ -88,6 +91,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       ],
       transaction,
     );
+    console.debug(`Persisted job ${job.id}`);
   }
 
   async success(job: Job, transaction: Transaction) {
@@ -119,6 +123,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       ],
       transaction,
     );
+    console.debug(`Updated job ${job.id} with status ${job.status}`);
   }
 
   async getNextJob(transaction: Transaction) {

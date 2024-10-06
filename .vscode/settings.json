@@ -1,16 +1,10 @@
 {
   "javascript.preferences.importModuleSpecifierEnding": "js",
   "typescript.preferences.importModuleSpecifierEnding": "js",
-  "sqltools.connections": [
+  "nodejs-testing.extensions": [
     {
-      "previewLimit": 50,
-      "server": "localhost",
-      "port": 5432,
-      "driver": "PostgreSQL",
-      "name": "jobster",
-      "database": "jobster",
-      "username": "dbadmin",
-      "password": "password"
+      "extensions": ["ts"],
+      "parameters": ["--no-warnings=ExperimentalWarning", "--experimental-strip-types"]
     }
   ]
 }

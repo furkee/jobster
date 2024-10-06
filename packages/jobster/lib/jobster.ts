@@ -10,10 +10,13 @@ export type JobsterOptions<Transaction> = {
   executor: IExecutor<Transaction>;
   /** @default 1 */
   numWorkers?: number;
-  workerOptions?: Omit<WorkerOptions<Transaction>, 'storage' | 'executor' | 'emitter'>;
+  workerOptions?: Pick<WorkerOptions<Transaction>, 'pollFrequency' | 'retryStrategy'>;
 };
 
+export type JobsterEvent = 'job.started' | 'job.succeeded' | 'job.failed' | 'job.finished';
+
 export class Jobster<Transaction> {
+  #jobsterEmitter = new eventemitter.EventEmitter2();
   #jobEmitter = new eventemitter.EventEmitter2();
   #workers: Worker<Transaction>[];
   #storage: IStorage<Transaction>;
@@ -22,9 +25,16 @@ export class Jobster<Transaction> {
   constructor({ storage, executor, numWorkers = 1, workerOptions = {} }: JobsterOptions<Transaction>) {
     this.#executor = executor;
     this.#storage = storage;
-    this.#workers = new Array(numWorkers)
-      .fill(0)
-      .map(() => new Worker({ storage: this.#storage, emitter: this.#jobEmitter, executor, ...workerOptions }));
+    this.#workers = new Array(numWorkers).fill(0).map(
+      () =>
+        new Worker({
+          ...workerOptions,
+          storage: this.#storage,
+          emitter: this.#jobEmitter,
+          jobsterEmitter: this.#jobsterEmitter,
+          executor,
+        }),
+    );
   }
 
   async start() {
@@ -33,10 +43,12 @@ export class Jobster<Transaction> {
   }
 
   stop() {
+    this.#jobEmitter.removeAllListeners();
+    this.#jobsterEmitter.removeAllListeners();
     this.#workers.forEach((worker) => worker.stop());
   }
 
-  listen(eventName: string, listener: (job: Job) => Promise<void>) {
+  listen(eventName: string, listener: (job: Job) => void | Promise<void>) {
     if (this.#jobEmitter.listeners('eventName').length) {
       throw new Error(`Job ${eventName} already has a listener`);
     }
@@ -45,5 +57,9 @@ export class Jobster<Transaction> {
 
   async queue(job: Job, transaction: Transaction) {
     await this.#storage.persist(job, transaction);
+  }
+
+  listenJobsterEvents(event: JobsterEvent, listener: (job: Job) => void) {
+    this.#jobsterEmitter.on(event, listener);
   }
 }

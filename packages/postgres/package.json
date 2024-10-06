@@ -14,6 +14,7 @@
   },
   "scripts": {
     "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types lib/main.ts",
+    "test": "node --test --no-warnings=ExperimentalWarning --experimental-strip-types test/**/*.test.ts",
     "start": "node build/main.js",
     "build": "rm -rf build || true && tsc"
   },

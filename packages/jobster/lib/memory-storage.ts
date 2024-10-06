@@ -1,8 +1,10 @@
+import { ExponentialBackoff } from './exponential-backoff.ts';
 import { Job } from './job.ts';
 import { type IStorage } from './storage.interface.ts';
 
 export class MemoryStorage implements IStorage<void> {
   #jobs = new Map<string, Job>();
+  #retryStrategy = new ExponentialBackoff();
 
   async initialize(opts?: any) {}
 
@@ -11,11 +13,11 @@ export class MemoryStorage implements IStorage<void> {
   }
 
   async success(job: Job) {
-    job.success();
+    await this.#retryStrategy.onSuccess(job);
   }
 
   async fail(job: Job) {
-    job.fail();
+    await this.#retryStrategy.onFailure(job);
   }
 
   async getNextJob() {

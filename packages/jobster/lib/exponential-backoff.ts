@@ -28,9 +28,9 @@ export class ExponentialBackoff implements IRetryStrategy {
     job.retries += 1;
     job.lastRunAt = new Date();
     job.createdAt = new Date();
-
     if (job.retries >= this.maxRetries) {
       job.status = 'failure';
+      job.nextRunAfter = null;
     } else {
       job.status = 'pending';
       job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * this.baseTimeoutMs);
