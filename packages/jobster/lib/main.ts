@@ -6,8 +6,7 @@ import { NoOpTransactionProvider } from './no-op-transaction-provider.ts';
 async function main() {
   const jobster = new Jobster<void>({
     storage: new MemoryStorage(),
-    // @ts-ignore
-    transactionProvider: new NoOpTransactionProvider(),
+    executor: new NoOpTransactionProvider(),
   });
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {
@@ -17,14 +16,14 @@ async function main() {
   //   });
   // });
 
-  jobster.listen('event', async (data: Record<string, unknown>) => {
+  jobster.listen('event', async (job) => {
     await new Promise((resolve, reject) => {
-      console.log({ message: 'reject', data });
+      console.log({ message: 'reject', data: job });
       reject(new Error('failed'));
     });
   });
 
-  await jobster.queue(new Job('event', { hello: 'world' }));
+  await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }));
 
   jobster.start();
 }

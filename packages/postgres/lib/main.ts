@@ -1,9 +1,9 @@
-import { type ITransactionProvider, Job, Jobster } from '@jobster/core';
+import { type IExecutor, Job, Jobster } from '@jobster/core';
 import pg from 'pg';
 
 import { PostgresStorage } from './postgres-storage.ts';
 
-class PgTransactionProvider implements ITransactionProvider<pg.PoolClient> {
+class PgExecutor implements IExecutor<pg.PoolClient> {
   readonly pool: pg.Pool;
 
   constructor(pool: pg.Pool) {
@@ -24,17 +24,21 @@ class PgTransactionProvider implements ITransactionProvider<pg.PoolClient> {
     }
   }
 
-  async run<QResult>(sql: string, client: pg.PoolClient): Promise<QResult> {
-    // @ts-ignore
-    return await client.query(sql);
+  async run(sql: string, params: any[], client: pg.PoolClient) {
+    const data = await client.query(sql, params);
+    return data.rows;
+  }
+
+  getQueryPlaceholder(index: number): string {
+    return `$${index + 1}`;
   }
 }
 
 async function main() {
   const pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
-  const transactionProvider = new PgTransactionProvider(pool);
-  const storage = new PostgresStorage({ run: transactionProvider.run.bind(transactionProvider) });
-  const jobster = new Jobster({ storage, transactionProvider });
+  const executor = new PgExecutor(pool);
+  const storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
+  const jobster = new Jobster({ storage, executor });
 
   await jobster.start();
 
@@ -45,15 +49,15 @@ async function main() {
   //   });
   // });
 
-  jobster.listen('event', async (data: Record<string, unknown>) => {
+  jobster.listen('event', async (job) => {
     await new Promise((resolve, reject) => {
-      console.log({ message: 'reject', data });
+      console.log({ message: 'reject', data: job });
       reject(new Error('failed'));
     });
   });
 
-  await transactionProvider.transaction(async (transaction) => {
-    await jobster.queue(new Job('event', { hello: 'world' }), transaction);
+  await executor.transaction(async (transaction) => {
+    await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }), transaction);
   });
 
   process.on('SIGINT', async () => {

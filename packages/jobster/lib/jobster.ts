@@ -1,36 +1,34 @@
 import eventemitter from 'eventemitter2';
 
+import { type IExecutor } from './executor.interface.ts';
 import { Job } from './job.ts';
 import { type IStorage } from './storage.interface.ts';
-import { type ITransactionProvider } from './transaction-provider.interface.ts';
 import { Worker, type WorkerOptions } from './worker.ts';
 
 export type JobsterOptions<Transaction> = {
   storage: IStorage<Transaction>;
-  transactionProvider: ITransactionProvider<Transaction>;
+  executor: IExecutor<Transaction>;
   /** @default 1 */
   numWorkers?: number;
-  workerOptions?: Omit<WorkerOptions<Transaction>, 'storage' | 'transactionProvider' | 'emitter'>;
+  workerOptions?: Omit<WorkerOptions<Transaction>, 'storage' | 'executor' | 'emitter'>;
 };
 
 export class Jobster<Transaction> {
   #jobEmitter = new eventemitter.EventEmitter2();
   #workers: Worker<Transaction>[];
   #storage: IStorage<Transaction>;
-  #transactionProvider: ITransactionProvider<Transaction>;
+  #executor: IExecutor<Transaction>;
 
-  constructor({ storage, transactionProvider, numWorkers = 1, workerOptions = {} }: JobsterOptions<Transaction>) {
-    this.#transactionProvider = transactionProvider;
+  constructor({ storage, executor, numWorkers = 1, workerOptions = {} }: JobsterOptions<Transaction>) {
+    this.#executor = executor;
     this.#storage = storage;
     this.#workers = new Array(numWorkers)
       .fill(0)
-      .map(
-        () => new Worker({ storage: this.#storage, transactionProvider, emitter: this.#jobEmitter, ...workerOptions }),
-      );
+      .map(() => new Worker({ storage: this.#storage, emitter: this.#jobEmitter, executor, ...workerOptions }));
   }
 
   async start() {
-    await this.#transactionProvider.transaction((transaction) => this.#storage.initialize(transaction));
+    await this.#executor.transaction((transaction) => this.#storage.initialize(transaction));
     this.#workers.forEach((worker) => worker.start());
   }
 
@@ -38,7 +36,7 @@ export class Jobster<Transaction> {
     this.#workers.forEach((worker) => worker.stop());
   }
 
-  listen(eventName: string, listener: (dto: Record<string, unknown>) => Promise<void>) {
+  listen(eventName: string, listener: (job: Job) => Promise<void>) {
     if (this.#jobEmitter.listeners('eventName').length) {
       throw new Error(`Job ${eventName} already has a listener`);
     }

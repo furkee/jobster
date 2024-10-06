@@ -1,8 +1,7 @@
-import { type ITransactionProvider } from './transaction-provider.interface.ts';
+import { type IExecutor } from './executor.interface.ts';
 
-export class NoOpTransactionProvider implements ITransactionProvider<void> {
-  // @ts-ignore
-  async run(sql: string, transaction: void): Promise<void> {}
+export class NoOpTransactionProvider implements IExecutor<void> {
+  async run(sql: string, params: any[], transaction: void): Promise<void> {}
 
   async transaction<QResult = void>(callback: (transaction: void) => Promise<QResult>): Promise<void> {
     callback();

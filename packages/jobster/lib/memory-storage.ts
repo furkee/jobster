@@ -11,23 +11,11 @@ export class MemoryStorage implements IStorage<void> {
   }
 
   async success(job: Job) {
-    job.status = 'success';
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
-    job.nextRunAfter = null;
+    job.success();
   }
 
   async fail(job: Job) {
-    job.retries += 1;
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
-
-    if (job.retries >= 7) {
-      job.status = 'failure';
-    } else {
-      job.status = 'pending';
-      job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * 1000);
-    }
+    job.fail();
   }
 
   async getNextJob() {
