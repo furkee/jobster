@@ -1,4 +1,5 @@
-import { type IExecutor, Job, Jobster } from '@jobster/core';
+import { ExponentialBackoff, type IExecutor, Job, Jobster } from '@jobster/core';
+
 import pg from 'pg';
 
 import { PostgresStorage } from './postgres-storage.ts';
@@ -38,7 +39,11 @@ async function main() {
   const pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
   const executor = new PgExecutor(pool);
   const storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
-  const jobster = new Jobster({ storage, executor });
+  const jobster = new Jobster({
+    storage,
+    executor,
+    workerOptions: { retryStrategy: new ExponentialBackoff({ baseTimeoutMs: 1000, maxRetries: 3 }) },
+  });
 
   await jobster.start();
 

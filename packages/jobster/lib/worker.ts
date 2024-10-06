@@ -1,12 +1,15 @@
 import { type EventEmitter2 } from 'eventemitter2';
 
 import { type IExecutor } from './executor.interface.ts';
+import { ExponentialBackoff } from './exponential-backoff.ts';
+import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
 
 export type WorkerOptions<Transaction> = {
   storage: IStorage<Transaction>;
   executor: IExecutor<Transaction>;
   emitter: InstanceType<typeof EventEmitter2>;
+  retryStrategy?: IRetryStrategy;
   /** @default 1000 */
   pollFrequency?: number;
 };
@@ -16,14 +19,22 @@ export class Worker<Transaction> {
   #status: 'running' | 'idling' = 'idling';
   #pollFrequency: number;
   #executor: IExecutor<Transaction>;
+  #retryStrategy: IRetryStrategy;
   #storage: IStorage<any>;
   #emitter: InstanceType<typeof EventEmitter2>;
 
-  constructor({ storage, emitter, executor, pollFrequency = 1000 }: WorkerOptions<Transaction>) {
+  constructor({
+    storage,
+    emitter,
+    executor,
+    pollFrequency = 1000,
+    retryStrategy = new ExponentialBackoff(),
+  }: WorkerOptions<Transaction>) {
     this.#storage = storage;
     this.#emitter = emitter;
     this.#executor = executor;
     this.#pollFrequency = pollFrequency;
+    this.#retryStrategy = retryStrategy;
   }
 
   get status() {
@@ -46,11 +57,13 @@ export class Worker<Transaction> {
         if (job) {
           try {
             if (!this.#emitter.hasListeners(job.name)) {
-              throw new Error(`Job ${job.id} does not have any listeners. Current attempt will count as a failure.`);
+              console.warn(`Job ${job.id} does not have any listeners. Current attempt will count as a failure.`);
             }
             await this.#emitter.emitAsync(job.name, job);
+            await this.#retryStrategy.onSuccess(job);
             await this.#storage.success(job, transaction);
           } catch (e) {
+            await this.#retryStrategy.onFailure(job);
             await this.#storage.fail(job, transaction);
           }
         }

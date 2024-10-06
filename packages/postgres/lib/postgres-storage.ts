@@ -91,12 +91,10 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
   }
 
   async success(job: Job, transaction: Transaction) {
-    job.success();
     await this.#updateJob(job, transaction);
   }
 
   async fail(job: Job, transaction: Transaction) {
-    job.fail();
     await this.#updateJob(job, transaction);
   }
 

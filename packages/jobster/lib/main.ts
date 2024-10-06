@@ -1,12 +1,12 @@
 import { Job } from './job.ts';
 import { Jobster } from './jobster.ts';
 import { MemoryStorage } from './memory-storage.ts';
-import { NoOpTransactionProvider } from './no-op-transaction-provider.ts';
+import { NoOpExecutor } from './no-op-executor.ts';
 
 async function main() {
   const jobster = new Jobster<void>({
     storage: new MemoryStorage(),
-    executor: new NoOpTransactionProvider(),
+    executor: new NoOpExecutor(),
   });
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {

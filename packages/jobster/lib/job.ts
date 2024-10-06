@@ -47,24 +47,4 @@ export class Job<Payload extends Record<string, unknown> = Record<string, unknow
     this.createdAt = createdAt || new Date();
     this.updatedAt = updatedAt || new Date();
   }
-
-  success() {
-    this.status = 'success';
-    this.lastRunAt = new Date();
-    this.createdAt = new Date();
-    this.nextRunAfter = null;
-  }
-
-  fail() {
-    this.retries += 1;
-    this.lastRunAt = new Date();
-    this.createdAt = new Date();
-
-    if (this.retries >= 10) {
-      this.status = 'failure';
-    } else {
-      this.status = 'pending';
-      this.nextRunAfter = new Date(Date.now() + Math.pow(2, this.retries) * 5000);
-    }
-  }
 }
