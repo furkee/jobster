@@ -1,4 +1,4 @@
-import { Job } from '../job.ts';
+import { Job } from './job.ts';
 
 export interface IStorage<Transaction> {
   initialize(transaction: Transaction): Promise<void>;
