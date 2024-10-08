@@ -6,3 +6,4 @@ export { type IExecutor } from './executor.interface.ts';
 export { NoOpExecutor } from './no-op-executor.ts';
 export { type IRetryStrategy } from './retry-strategy.interface.ts';
 export { ExponentialBackoff } from './exponential-backoff.ts';
+export { Logger, type ILogger } from './logger.ts';

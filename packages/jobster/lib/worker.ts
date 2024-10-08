@@ -4,6 +4,7 @@ import { type IExecutor } from './executor.interface.ts';
 import { ExponentialBackoff } from './exponential-backoff.ts';
 import { type Job } from './job.ts';
 import { type JobsterEvent } from './jobster.ts';
+import { type ILogger, Logger } from './logger.ts';
 import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
 
@@ -15,9 +16,12 @@ export type WorkerOptions<Transaction> = {
   retryStrategy?: IRetryStrategy;
   /** @default 1000 */
   pollFrequency?: number;
+  logger?: ILogger;
 };
 
 export class Worker<Transaction> {
+  #logger: ILogger;
+
   #timer: NodeJS.Timeout | undefined = undefined;
   #status: 'running' | 'idling' = 'idling';
   #pollFrequency: number;
@@ -34,7 +38,9 @@ export class Worker<Transaction> {
     executor,
     pollFrequency = 1000,
     retryStrategy = new ExponentialBackoff(),
+    logger,
   }: WorkerOptions<Transaction>) {
+    this.#logger = logger ?? new Logger(Worker.name);
     this.#storage = storage;
     this.#emitter = emitter;
     this.#jobsterEmitter = jobsterEmitter;
@@ -49,17 +55,19 @@ export class Worker<Transaction> {
 
   async start() {
     if (this.#status === 'running') {
+      this.#logger.warn('worker is already started');
       return;
     }
 
     this.#status = 'running';
+    this.#logger.info('worker is running');
 
     while (this.#status === 'running') {
       let job: Job | null = null;
 
       await this.#executor.transaction(async (transaction) => {
         job = await this.#storage.getNextJob(transaction);
-        console.log('poll', job, this.#pollFrequency);
+        this.#logger.debug('poll', job, this.#pollFrequency);
 
         if (job) {
           this.#jobsterEmitter.emit('job.started' as JobsterEvent, job);
@@ -72,6 +80,7 @@ export class Worker<Transaction> {
             await this.#storage.success(job, transaction);
             this.#jobsterEmitter.emit('job.succeeded' as JobsterEvent, job);
           } catch (e) {
+            this.#logger.error(`failed processing job ${job.id}`, e);
             await this.#retryStrategy.onFailure(job);
             await this.#storage.fail(job, transaction);
             this.#jobsterEmitter.emit('job.failed' as JobsterEvent, job);

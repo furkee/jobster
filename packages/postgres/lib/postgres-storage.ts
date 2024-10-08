@@ -1,4 +1,4 @@
-import { type IExecutor, type IStorage, Job } from '@jobster/core';
+import { type IExecutor, type ILogger, type IStorage, Job, Logger } from '@jobster/core';
 
 export type PostgresStorageOptions<Transaction> = {
   run: IExecutor<Transaction>['run'];
@@ -11,17 +11,23 @@ export type PostgresStorageOptions<Transaction> = {
    * would expect you to return $1 where as mikroorm expects a single `?` for each dynamic value.
    */
   getQueryPlaceholder(index: number): string;
+  logger?: ILogger;
 };
 
 export class PostgresStorage<Transaction> implements IStorage<Transaction> {
-  #options: PostgresStorageOptions<Transaction>;
+  #logger: ILogger;
 
-  constructor(opts: PostgresStorageOptions<Transaction>) {
-    this.#options = opts;
+  #run: PostgresStorageOptions<Transaction>['run'];
+  #getQueryPlaceholder: PostgresStorageOptions<Transaction>['getQueryPlaceholder'];
+
+  constructor({ run, getQueryPlaceholder, logger }: PostgresStorageOptions<Transaction>) {
+    this.#logger = logger ?? new Logger(PostgresStorage.name);
+    this.#run = run;
+    this.#getQueryPlaceholder = getQueryPlaceholder;
   }
 
   async initialize(transaction: Transaction): Promise<void> {
-    await this.#options.run(
+    await this.#run(
       /* sql */ `
       DO $$
       BEGIN
@@ -33,7 +39,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       [],
       transaction,
     );
-    await this.#options.run(
+    await this.#run(
       /* sql */ `
       CREATE TABLE IF NOT EXISTS "JobsterJobs" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,10 +56,11 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       [],
       transaction,
     );
+    this.#logger.debug('postgres storage initialized ');
   }
 
   async persist(job: Job, transaction: Transaction) {
-    await this.#options.run(
+    await this.#run(
       /* sql */ `
       INSERT INTO "JobsterJobs" (
         id,
@@ -67,15 +74,15 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
         "updatedAt"
       )
       VALUES (
-        ${this.#options.getQueryPlaceholder(0)},
-        ${this.#options.getQueryPlaceholder(1)},
-        ${this.#options.getQueryPlaceholder(2)},
-        ${this.#options.getQueryPlaceholder(3)},
-        ${this.#options.getQueryPlaceholder(4)},
-        ${this.#options.getQueryPlaceholder(5)},
-        ${this.#options.getQueryPlaceholder(6)},
-        ${this.#options.getQueryPlaceholder(7)},
-        ${this.#options.getQueryPlaceholder(8)}
+        ${this.#getQueryPlaceholder(0)},
+        ${this.#getQueryPlaceholder(1)},
+        ${this.#getQueryPlaceholder(2)},
+        ${this.#getQueryPlaceholder(3)},
+        ${this.#getQueryPlaceholder(4)},
+        ${this.#getQueryPlaceholder(5)},
+        ${this.#getQueryPlaceholder(6)},
+        ${this.#getQueryPlaceholder(7)},
+        ${this.#getQueryPlaceholder(8)}
       );
       `,
       [
@@ -91,7 +98,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       ],
       transaction,
     );
-    console.debug(`Persisted job ${job.id}`);
+    this.#logger.debug(`Persisted job ${job.id}`);
   }
 
   async success(job: Job, transaction: Transaction) {
@@ -103,15 +110,15 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
   }
 
   async #updateJob(job: Job, transaction: Transaction) {
-    await this.#options.run(
+    await this.#run(
       /* sql */ `
       UPDATE "JobsterJobs" SET
-        status = ${this.#options.getQueryPlaceholder(0)},
-        retries = ${this.#options.getQueryPlaceholder(1)},
-        "lastRunAt" = ${this.#options.getQueryPlaceholder(2)},
-        "nextRunAfter" = ${this.#options.getQueryPlaceholder(3)},
-        "updatedAt" = ${this.#options.getQueryPlaceholder(4)}
-      WHERE id = ${this.#options.getQueryPlaceholder(5)};
+        status = ${this.#getQueryPlaceholder(0)},
+        retries = ${this.#getQueryPlaceholder(1)},
+        "lastRunAt" = ${this.#getQueryPlaceholder(2)},
+        "nextRunAfter" = ${this.#getQueryPlaceholder(3)},
+        "updatedAt" = ${this.#getQueryPlaceholder(4)}
+      WHERE id = ${this.#getQueryPlaceholder(5)};
       `,
       [
         job.status,
@@ -123,11 +130,11 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       ],
       transaction,
     );
-    console.debug(`Updated job ${job.id} with status ${job.status}`);
+    this.#logger.debug(`Updated job ${job.id} with status ${job.status}`);
   }
 
   async getNextJob(transaction: Transaction) {
-    const rows = await this.#options.run(
+    const rows = await this.#run(
       /* sql */ `
       UPDATE "JobsterJobs" SET
         status = 'running',
