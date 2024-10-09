@@ -1,4 +1,4 @@
-import { type IExecutor } from '@jobster/core';
+import { type IExecutor, Logger } from '@jobster/core';
 
 import pg from 'pg';
 

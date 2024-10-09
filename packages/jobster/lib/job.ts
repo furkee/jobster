@@ -1,8 +1,11 @@
 export type JobStatus = 'pending' | 'running' | 'success' | 'failure';
 
-export type JobParams<Payload extends Record<string, unknown> = Record<string, unknown>> = {
+export type JobParams<
+  Payload extends Record<string, unknown> = Record<string, unknown>,
+  JobNames extends string = string,
+> = {
   id?: string;
-  name: string;
+  name: JobNames;
   payload: Payload;
   status?: JobStatus;
   retries?: number;
@@ -12,9 +15,9 @@ export type JobParams<Payload extends Record<string, unknown> = Record<string, u
   updatedAt?: Date;
 };
 
-export class Job<Payload extends Record<string, unknown> = Record<string, unknown>> {
+export class Job<Payload extends Record<string, unknown> = Record<string, unknown>, JobNames extends string = string> {
   id: string;
-  name: string;
+  name: JobNames;
   payload: Payload;
   status: JobStatus;
   retries: number = 0;
@@ -33,7 +36,7 @@ export class Job<Payload extends Record<string, unknown> = Record<string, unknow
     nextRunAfter,
     createdAt,
     updatedAt,
-  }: JobParams<Payload>) {
+  }: JobParams<Payload, JobNames>) {
     if (!name || !payload) {
       throw new Error('Cannot create a job without name or payload');
     }

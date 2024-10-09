@@ -7,7 +7,12 @@ async function main() {
   const jobster = new Jobster<void>({
     storage: new MemoryStorage(),
     executor: new NoOpExecutor(),
+    jobConfig: {
+      event: {},
+    },
   });
+
+  await jobster.initializeDb();
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {
   //   await new Promise((resolve, reject) => {

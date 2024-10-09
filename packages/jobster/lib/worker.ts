@@ -1,7 +1,6 @@
 import { type EventEmitter2 } from 'eventemitter2';
 
 import { type IExecutor } from './executor.interface.ts';
-import { ExponentialBackoff } from './exponential-backoff.ts';
 import { type Job } from './job.ts';
 import { type JobsterEvent } from './jobster.ts';
 import { type ILogger, Logger } from './logger.ts';
@@ -9,44 +8,51 @@ import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
 
 export type WorkerOptions<Transaction> = {
-  storage: IStorage<Transaction>;
-  executor: IExecutor<Transaction>;
+  batchSize: number;
   emitter: InstanceType<typeof EventEmitter2>;
+  executor: IExecutor<Transaction>;
+  jobName: string;
   jobsterEmitter: InstanceType<typeof EventEmitter2>;
-  retryStrategy?: IRetryStrategy;
-  /** @default 1000 */
-  pollFrequency?: number;
   logger?: ILogger;
+  pollFrequency: number;
+  retryStrategy: IRetryStrategy;
+  storage: IStorage<Transaction>;
 };
 
 export class Worker<Transaction> {
   #logger: ILogger;
 
-  #timer: NodeJS.Timeout | undefined = undefined;
-  #status: 'running' | 'idling' = 'idling';
-  #pollFrequency: number;
-  #executor: IExecutor<Transaction>;
-  #retryStrategy: IRetryStrategy;
-  #storage: IStorage<any>;
+  #batchSize: number;
   #emitter: InstanceType<typeof EventEmitter2>;
+  #executor: IExecutor<Transaction>;
+  #jobName: string;
   #jobsterEmitter: InstanceType<typeof EventEmitter2>;
+  #pollFrequency: number;
+  #retryStrategy: IRetryStrategy;
+  #status: 'running' | 'idling' = 'idling';
+  #storage: IStorage<any>;
+  #timer: NodeJS.Timeout | undefined = undefined;
 
   constructor({
-    storage,
+    batchSize,
     emitter,
-    jobsterEmitter,
     executor,
-    pollFrequency = 1000,
-    retryStrategy = new ExponentialBackoff(),
+    jobName,
+    jobsterEmitter,
     logger,
+    pollFrequency,
+    retryStrategy,
+    storage,
   }: WorkerOptions<Transaction>) {
-    this.#logger = logger ?? new Logger(Worker.name);
-    this.#storage = storage;
+    this.#batchSize = batchSize;
     this.#emitter = emitter;
-    this.#jobsterEmitter = jobsterEmitter;
     this.#executor = executor;
+    this.#jobName = jobName;
+    this.#jobsterEmitter = jobsterEmitter;
+    this.#logger = logger ?? new Logger(Worker.name);
     this.#pollFrequency = pollFrequency;
     this.#retryStrategy = retryStrategy;
+    this.#storage = storage;
   }
 
   get status() {
@@ -63,33 +69,35 @@ export class Worker<Transaction> {
     this.#logger.info('worker is running');
 
     while (this.#status === 'running') {
-      let job: Job | null = null;
+      let jobs: Job[] = [];
 
       await this.#executor.transaction(async (transaction) => {
-        job = await this.#storage.getNextJob(transaction);
-        this.#logger.debug('poll', job, this.#pollFrequency);
+        jobs = await this.#storage.getNextJobs(this.#jobName, this.#batchSize, transaction);
+        this.#logger.debug('poll', jobs, this.#pollFrequency);
 
-        if (job) {
-          this.#jobsterEmitter.emit('job.started' as JobsterEvent, job);
+        if (jobs?.length) {
+          this.#jobsterEmitter.emit('job.started' as JobsterEvent, jobs);
           try {
-            if (!this.#emitter.hasListeners(job.name)) {
-              throw new Error(`Job ${job.id} does not have any listeners. Current attempt will count as a failure.`);
+            if (!this.#emitter.hasListeners(jobs[0].name)) {
+              throw new Error(
+                `Job ${jobs[0].name} does not have any listeners. Current attempt will count as a failure.`,
+              );
             }
-            await this.#emitter.emitAsync(job.name, job);
-            await this.#retryStrategy.onSuccess(job);
-            await this.#storage.success(job, transaction);
-            this.#jobsterEmitter.emit('job.succeeded' as JobsterEvent, job);
+            await this.#emitter.emitAsync(jobs[0].name, jobs);
+            await this.#retryStrategy.onSuccess(jobs);
+            await this.#storage.success(jobs, transaction);
+            this.#jobsterEmitter.emit('job.succeeded' as JobsterEvent, jobs);
           } catch (e) {
-            this.#logger.error(`failed processing job ${job.id}`, e);
-            await this.#retryStrategy.onFailure(job);
-            await this.#storage.fail(job, transaction);
-            this.#jobsterEmitter.emit('job.failed' as JobsterEvent, job);
+            this.#logger.error(`failed processing job ${jobs[0].id}`, e);
+            await this.#retryStrategy.onFailure(jobs);
+            await this.#storage.fail(jobs, transaction);
+            this.#jobsterEmitter.emit('job.failed' as JobsterEvent, jobs);
           }
         }
       });
 
-      if (job) {
-        this.#jobsterEmitter.emit('job.finished' as JobsterEvent, job);
+      if (jobs.length) {
+        this.#jobsterEmitter.emit('job.finished' as JobsterEvent, jobs);
       }
 
       await new Promise((r) => (this.#timer = setTimeout(r, this.#pollFrequency)));

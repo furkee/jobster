@@ -12,10 +12,21 @@ async function main() {
   const jobster = new Jobster({
     storage,
     executor,
-    workerOptions: { retryStrategy: new ExponentialBackoff({ baseTimeoutMs: 1000, maxRetries: 3 }) },
+    jobConfig: {
+      event: {
+        batchSize: 100,
+        maxWorkers: 20,
+        minWorkers: 2,
+      },
+      'tournament.started': {
+        batchSize: 1,
+        minWorkers: 1,
+        maxWorkers: 10,
+      },
+    },
   });
 
-  await jobster.start();
+  await jobster.initializeDb();
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {
   //   await new Promise((resolve, reject) => {
@@ -30,6 +41,8 @@ async function main() {
       reject(new Error('failed'));
     });
   });
+
+  jobster.start();
 
   await executor.transaction(async (transaction) => {
     await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }), transaction);

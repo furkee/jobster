@@ -10,19 +10,33 @@ suite('posgres', { timeout: 500 }, () => {
   let jobster: Jobster<pg.PoolClient>;
   let pool: pg.Pool;
   let executor: PgExecutor;
-  let storage: PostgresStorage<pg.PoolClient>;
 
   beforeEach(async () => {
     pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
     executor = new PgExecutor(pool);
-    storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
     jobster = new Jobster({
-      storage,
       executor,
-      workerOptions: { pollFrequency: 0, retryStrategy: new ExponentialBackoff({ baseTimeoutMs: 0, maxRetries: 1 }) },
+      storage: new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder }),
+      jobConfig: {
+        success: {
+          batchSize: 1,
+          maxWorkers: 1,
+          minWorkers: 1,
+          pollFrequency: 0,
+          retryStrategy: new ExponentialBackoff({ baseTimeoutMs: 0, maxRetries: 1 }),
+        },
+        failure: {
+          batchSize: 1,
+          maxWorkers: 1,
+          minWorkers: 1,
+          pollFrequency: 0,
+          retryStrategy: new ExponentialBackoff({ baseTimeoutMs: 0, maxRetries: 1 }),
+        },
+      },
     });
 
-    await jobster.start();
+    await jobster.initializeDb();
+    jobster.start();
   });
 
   afterEach(async () => {
@@ -34,7 +48,7 @@ suite('posgres', { timeout: 500 }, () => {
   test('success run', async () => {
     const job = new Job({ name: 'success', payload: { hello: 'world' } });
 
-    jobster.listen(job.name, (resolvedJob) => {
+    jobster.listen(job.name, ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
     });
 
@@ -51,7 +65,7 @@ suite('posgres', { timeout: 500 }, () => {
   test('failure run', async () => {
     const job = new Job({ name: 'failure', payload: { hello: 'world' } });
 
-    jobster.listen(job.name, (resolvedJob) => {
+    jobster.listen(job.name, ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
       throw new Error('fail');
     });

@@ -101,39 +101,49 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
     this.#logger.debug(`Persisted job ${job.id}`);
   }
 
-  async success(job: Job, transaction: Transaction) {
-    await this.#updateJob(job, transaction);
+  async success(jobs: Job[], transaction: Transaction) {
+    await this.#updateJobs(jobs, transaction);
   }
 
-  async fail(job: Job, transaction: Transaction) {
-    await this.#updateJob(job, transaction);
+  async fail(jobs: Job[], transaction: Transaction) {
+    await this.#updateJobs(jobs, transaction);
   }
 
-  async #updateJob(job: Job, transaction: Transaction) {
+  async #updateJobs(jobs: Job[], transaction: Transaction) {
     await this.#run(
       /* sql */ `
-      UPDATE "JobsterJobs" SET
-        status = ${this.#getQueryPlaceholder(0)},
-        retries = ${this.#getQueryPlaceholder(1)},
-        "lastRunAt" = ${this.#getQueryPlaceholder(2)},
-        "nextRunAfter" = ${this.#getQueryPlaceholder(3)},
-        "updatedAt" = ${this.#getQueryPlaceholder(4)}
-      WHERE id = ${this.#getQueryPlaceholder(5)};
+      UPDATE "JobsterJobs" AS j SET
+        status = (v.status)::JobsterJobStatus,
+        retries = (v.retries)::int,
+        "lastRunAt" = (v."lastRunAt")::timestamp,
+        "nextRunAfter" = (v."nextRunAfter")::timestamp,
+        "updatedAt" = (v."updatedAt")::timestamp
+      FROM (VALUES
+          ${jobs
+            .map(
+              (job, i) =>
+                `(${new Array(6)
+                  .fill(null)
+                  .map((_, j) => this.#getQueryPlaceholder(i * 6 + j))
+                  .join(',')})`,
+            )
+            .join(',')}
+      ) AS v(id, status, retries, "lastRunAt", "nextRunAfter", "updatedAt")
+      WHERE j.id = (v.id)::uuid;
       `,
-      [
+      jobs.flatMap((job) => [
+        job.id,
         job.status,
         job.retries,
         job.lastRunAt?.toISOString() || null,
         job.nextRunAfter?.toISOString() || null,
         job.updatedAt.toISOString(),
-        job.id,
-      ],
+      ]),
       transaction,
     );
-    this.#logger.debug(`Updated job ${job.id} with status ${job.status}`);
   }
 
-  async getNextJob(transaction: Transaction) {
+  async getNextJobs(jobName: string, batchSize: number, transaction: Transaction) {
     const rows = await this.#run(
       /* sql */ `
       UPDATE "JobsterJobs" SET
@@ -141,28 +151,23 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
         "updatedAt" = NOW()
       WHERE id = (
         SELECT id FROM "JobsterJobs"
-          WHERE (
-            status = 'pending'
-              AND "nextRunAfter" < NOW()
-              AND retries < 7
-          ) OR (
-            status = 'running'
-              AND "updatedAt" < NOW() - INTERVAL '1 minutes'
-          )
+          WHERE
+            name = ${this.#getQueryPlaceholder(0)} AND ((
+              status = 'pending'
+                AND "nextRunAfter" < NOW()
+              ) OR (
+              status = 'running'
+                AND "updatedAt" < NOW() - INTERVAL '1 minutes'
+            ))
           ORDER BY "createdAt" ASC
-          LIMIT 1
+          LIMIT ${this.#getQueryPlaceholder(1)}
           FOR UPDATE SKIP LOCKED
       )
       RETURNING *;
       `,
-      [],
+      [jobName, batchSize],
       transaction,
     );
-
-    if (rows && Array.isArray(rows) && rows.length === 1) {
-      return new Job(rows[0]);
-    }
-
-    return null;
+    return rows;
   }
 }

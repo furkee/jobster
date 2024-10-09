@@ -17,23 +17,27 @@ export class ExponentialBackoff implements IRetryStrategy {
     this.maxRetries = maxRetries;
   }
 
-  onSuccess(job: Job) {
-    job.status = 'success';
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
-    job.nextRunAfter = null;
+  onSuccess(jobs: Job[]) {
+    jobs.forEach((job) => {
+      job.status = 'success';
+      job.lastRunAt = new Date();
+      job.createdAt = new Date();
+      job.nextRunAfter = null;
+    });
   }
 
-  onFailure(job: Job) {
-    job.retries += 1;
-    job.lastRunAt = new Date();
-    job.createdAt = new Date();
-    if (job.retries >= this.maxRetries) {
-      job.status = 'failure';
-      job.nextRunAfter = null;
-    } else {
-      job.status = 'pending';
-      job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * this.baseTimeoutMs);
-    }
+  onFailure(jobs: Job[]) {
+    jobs.forEach((job) => {
+      job.retries += 1;
+      job.lastRunAt = new Date();
+      job.createdAt = new Date();
+      if (job.retries >= this.maxRetries) {
+        job.status = 'failure';
+        job.nextRunAfter = null;
+      } else {
+        job.status = 'pending';
+        job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * this.baseTimeoutMs);
+      }
+    });
   }
 }
