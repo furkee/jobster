@@ -17,15 +17,13 @@ export type JobConfig = {
    * how many jobs the worker should fetch per iteration. by default each worker will handle
    * a single job per iteration, to enable batch processing, increase the number.
    *
-   * __NOTE__: batched jobs succeed or fail together.
-   * TODO improve on this later and (maybe) allow handlers to signal the success/fail status per job
-   * handler function should return a list of failed job IDs and worker should adjust the jobs based on that
-   *
    * @default 1
    */
   batchSize?: number;
   /**
-   * poll frequency of the worker in milliseconds
+   * poll frequency of the worker in milliseconds. this does not mean the polling takes place at a determined
+   * interval. worker will wait until job handler is finished, then wait `pollFrequency` ms before running again.
+   *
    * @default 1000
    */
   pollFrequency?: number;
@@ -36,6 +34,15 @@ export type JobConfig = {
   disabled?: boolean;
 };
 
+/**
+ * if a handler rejects or throws, all the jobs within the batch will be regarded as failed.
+ * if a handler returns a list of failed job IDs, those job IDs are marked as failed. this helps
+ * with having partially succesful batch processing.
+ */
+export type JobHandler = (
+  jobs: Job[],
+) => void | Promise<void> | { failedJobIds: string[] } | Promise<{ failedJobIds: string[] }>;
+
 export type JobsterOptions<Transaction, JobNames extends string = string> = {
   storage: IStorage<Transaction>;
   executor: IExecutor<Transaction>;
@@ -43,7 +50,7 @@ export type JobsterOptions<Transaction, JobNames extends string = string> = {
   logger?: ILogger;
 };
 
-export type JobsterEvent = 'job.started' | 'job.succeeded' | 'job.failed' | 'job.finished';
+export type JobsterEvent = 'job.started' | 'job.finished';
 
 export class Jobster<Transaction, JobNames extends string = string> {
   #logger: ILogger;
@@ -109,7 +116,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
     this.#logger.debug('jobster stopped');
   }
 
-  listen(jobName: JobNames, listener: (jobs: Job[]) => void | Promise<void>) {
+  listen(jobName: JobNames, listener: JobHandler) {
     if (this.#jobEmitter.listeners('eventName').length) {
       throw new Error(`Job ${jobName} already has a listener`);
     }

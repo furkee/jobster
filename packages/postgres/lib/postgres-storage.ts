@@ -110,6 +110,10 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
   }
 
   async #updateJobs(jobs: Job[], transaction: Transaction) {
+    if (!jobs.length) {
+      return;
+    }
+
     await this.#run(
       /* sql */ `
       UPDATE "JobsterJobs" AS j SET

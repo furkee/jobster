@@ -1,4 +1,4 @@
-import { type IExecutor, Logger } from '@jobster/core';
+import { type IExecutor } from '@jobster/core';
 
 import pg from 'pg';
 
@@ -24,8 +24,13 @@ export class PgExecutor implements IExecutor<pg.PoolClient> {
   }
 
   async run(sql: string, params: any[], client: pg.PoolClient) {
-    const data = await client.query(sql, params);
-    return data.rows;
+    try {
+      const data = await client.query(sql, params);
+      return data.rows;
+    } catch (e) {
+      console.log({ sql, params });
+      throw e;
+    }
   }
 
   getQueryPlaceholder(index: number): string {

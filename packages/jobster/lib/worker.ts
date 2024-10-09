@@ -2,8 +2,9 @@ import { type EventEmitter2 } from 'eventemitter2';
 
 import { type IExecutor } from './executor.interface.ts';
 import { type Job } from './job.ts';
-import { type JobsterEvent } from './jobster.ts';
+import { type JobHandler, type JobsterEvent } from './jobster.ts';
 import { type ILogger, Logger } from './logger.ts';
+import { partition } from './partition.ts';
 import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
 
@@ -59,6 +60,53 @@ export class Worker<Transaction> {
     return this.#status;
   }
 
+  async #execute() {
+    const start = performance.now();
+    let jobs: Job[] = [];
+
+    await this.#executor.transaction(async (transaction) => {
+      jobs = await this.#storage.getNextJobs(this.#jobName, this.#batchSize, transaction);
+
+      if (jobs.length) {
+        this.#jobsterEmitter.emit('job.started' as JobsterEvent, jobs);
+        try {
+          if (!this.#emitter.hasListeners(jobs[0].name)) {
+            throw new Error(
+              `job ${jobs[0].name} does not have any listeners. Current attempt will count as a failure.`,
+            );
+          }
+
+          const [res]: Awaited<ReturnType<JobHandler>>[] = await this.#emitter.emitAsync(jobs[0].name, jobs);
+          const failedJobSet = new Set(res ? res.failedJobIds : null);
+          const [failedJobs, succeededJobs] = partition(jobs, (job) => failedJobSet.has(job.id));
+
+          if (succeededJobs.length) {
+            this.#retryStrategy.onSuccess(succeededJobs);
+          }
+
+          if (failedJobs.length) {
+            this.#retryStrategy.onFailure(failedJobs);
+          }
+
+          await Promise.all([
+            succeededJobs.length ? this.#storage.success(succeededJobs, transaction) : null,
+            failedJobs.length ? this.#storage.fail(failedJobs, transaction) : null,
+          ]);
+        } catch (e) {
+          this.#logger.error(`failed processing job ${jobs[0].id}`, e);
+          await this.#retryStrategy.onFailure(jobs);
+          await this.#storage.fail(jobs, transaction);
+        }
+      }
+    });
+
+    if (jobs.length) {
+      this.#jobsterEmitter.emit('job.finished' as JobsterEvent, jobs);
+    }
+
+    this.#logger.debug(`worker ran in ${performance.now() - start} ms, handled ${jobs.length} jobs`);
+  }
+
   async start() {
     if (this.#status === 'running') {
       this.#logger.warn('worker is already started');
@@ -69,37 +117,7 @@ export class Worker<Transaction> {
     this.#logger.info('worker is running');
 
     while (this.#status === 'running') {
-      let jobs: Job[] = [];
-
-      await this.#executor.transaction(async (transaction) => {
-        jobs = await this.#storage.getNextJobs(this.#jobName, this.#batchSize, transaction);
-        this.#logger.debug('poll', jobs, this.#pollFrequency);
-
-        if (jobs?.length) {
-          this.#jobsterEmitter.emit('job.started' as JobsterEvent, jobs);
-          try {
-            if (!this.#emitter.hasListeners(jobs[0].name)) {
-              throw new Error(
-                `Job ${jobs[0].name} does not have any listeners. Current attempt will count as a failure.`,
-              );
-            }
-            await this.#emitter.emitAsync(jobs[0].name, jobs);
-            await this.#retryStrategy.onSuccess(jobs);
-            await this.#storage.success(jobs, transaction);
-            this.#jobsterEmitter.emit('job.succeeded' as JobsterEvent, jobs);
-          } catch (e) {
-            this.#logger.error(`failed processing job ${jobs[0].id}`, e);
-            await this.#retryStrategy.onFailure(jobs);
-            await this.#storage.fail(jobs, transaction);
-            this.#jobsterEmitter.emit('job.failed' as JobsterEvent, jobs);
-          }
-        }
-      });
-
-      if (jobs.length) {
-        this.#jobsterEmitter.emit('job.finished' as JobsterEvent, jobs);
-      }
-
+      await this.#execute();
       await new Promise((r) => (this.#timer = setTimeout(r, this.#pollFrequency)));
     }
   }
