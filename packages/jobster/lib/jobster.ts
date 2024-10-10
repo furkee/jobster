@@ -6,6 +6,7 @@ import { Job } from './job.ts';
 import { type ILogger, Logger } from './logger.ts';
 import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
+import { times } from './util.ts';
 import { Worker } from './worker.ts';
 
 export type JobConfig = {
@@ -92,9 +93,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
           jobName as JobNames,
           disabled
             ? []
-            : new Array(minWorkers)
-                .fill(null)
-                .map(() => this.#createWorker(jobName as JobNames, jobConfig[jobName as JobNames]!)),
+            : times(minWorkers, () => this.#createWorker(jobName as JobNames, jobConfig[jobName as JobNames]!)),
         ];
       }),
     );
@@ -171,9 +170,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
       });
 
       if (change > 0) {
-        const newWorkers = new Array(change)
-          .fill(null)
-          .map(() => this.#createWorker(job as JobNames, this.#jobConfig[job as JobNames]!));
+        const newWorkers = times(change, () => this.#createWorker(job as JobNames, this.#jobConfig[job as JobNames]!));
         workers.concat(newWorkers);
         newWorkers.forEach((worker) => worker.start());
         this.#jobsterEmitter.emit('jobster.scale.up' as JobsterEvent, { job, change, numWorkers: workers.length });

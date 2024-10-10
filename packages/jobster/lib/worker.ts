@@ -4,9 +4,9 @@ import { type IExecutor } from './executor.interface.ts';
 import { type Job } from './job.ts';
 import { type JobHandler, type JobsterEvent } from './jobster.ts';
 import { type ILogger, Logger } from './logger.ts';
-import { partition } from './partition.ts';
 import { type IRetryStrategy } from './retry-strategy.interface.ts';
 import { type IStorage } from './storage.interface.ts';
+import { partition } from './util.ts';
 
 export type WorkerOptions<Transaction> = {
   batchSize: number;
