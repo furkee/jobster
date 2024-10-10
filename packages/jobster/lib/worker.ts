@@ -80,10 +80,6 @@ export class Worker<Transaction> {
           const failedJobSet = new Set(res ? res.failedJobIds : null);
           const [failedJobs, succeededJobs] = partition(jobs, (job) => failedJobSet.has(job.id));
 
-          if (succeededJobs.length) {
-            this.#retryStrategy.onSuccess(succeededJobs);
-          }
-
           if (failedJobs.length) {
             this.#retryStrategy.onFailure(failedJobs);
           }

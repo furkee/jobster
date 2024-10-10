@@ -47,7 +47,7 @@ suite('posgres', { timeout: 5000 }, () => {
   test('success run', async () => {
     const job = new Job({ name: 'test', payload: { hello: 'world' } });
 
-    jobster.listen(job.name, ([resolvedJob]) => {
+    jobster.listen(job.name, async ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
     });
 
@@ -56,9 +56,8 @@ suite('posgres', { timeout: 5000 }, () => {
     await new Promise((r) => jobster.listenJobsterEvents('job.finished', r));
 
     const res = await pool.query('SELECT * FROM "JobsterJobs" WHERE id = $1', [job.id]);
-    const updatedJob = res.rows[0] as Job;
 
-    assert.equal(updatedJob.status, 'success' as JobStatus);
+    assert.equal(res.rows.length, 0);
   });
 
   test('failure via throw run', async () => {

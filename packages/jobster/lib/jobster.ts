@@ -117,7 +117,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
   }
 
   listen(jobName: JobNames, listener: JobHandler) {
-    if (this.#jobEmitter.listeners('eventName').length) {
+    if (this.#jobEmitter.listeners(jobName).length) {
       throw new Error(`Job ${jobName} already has a listener`);
     }
     this.#jobEmitter.on(jobName, listener);

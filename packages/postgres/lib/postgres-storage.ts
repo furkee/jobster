@@ -32,7 +32,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'JobsterJobStatus') THEN
-          CREATE TYPE "JobsterJobStatus" AS ENUM ('pending', 'running', 'success', 'failure');
+          CREATE TYPE "JobsterJobStatus" AS ENUM ('pending', 'running', 'failure');
         END IF;
       END $$;
       `,
@@ -56,6 +56,24 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       [],
       transaction,
     );
+    const indexQuery = (idxName: string, idxCol: string) => /* sql */ `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+            SELECT 1
+            FROM pg_indexes
+            WHERE schemaname = 'public'  -- Replace with your schema name if different
+            AND indexname = '${idxName}'
+        ) THEN
+            CREATE INDEX ${idxName} ON "JobsterJobs" ("${idxCol}");
+        END IF;
+      END $$;
+    `;
+    await Promise.all([
+      this.#run(indexQuery('jobster_job_name_idx', 'name'), [], transaction),
+      this.#run(indexQuery('jobster_job_created_at_idx', 'createdAt'), [], transaction),
+      this.#run(indexQuery('jobster_job_updated_at_idx', 'updatedAt'), [], transaction),
+    ]);
     this.#logger.debug('postgres storage initialized ');
   }
 
@@ -102,14 +120,14 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
   }
 
   async success(jobs: Job[], transaction: Transaction) {
-    await this.#updateJobs(jobs, transaction);
+    await this.#run(
+      /* sql */ `DELETE FROM "JobsterJobs" WHERE id IN (${jobs.map((_, i) => `${this.#getQueryPlaceholder(i)}`).join(',')})`,
+      jobs.map((job) => job.id),
+      transaction,
+    );
   }
 
   async fail(jobs: Job[], transaction: Transaction) {
-    await this.#updateJobs(jobs, transaction);
-  }
-
-  async #updateJobs(jobs: Job[], transaction: Transaction) {
     if (!jobs.length) {
       return;
     }

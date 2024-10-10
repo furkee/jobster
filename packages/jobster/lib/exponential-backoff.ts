@@ -17,15 +17,6 @@ export class ExponentialBackoff implements IRetryStrategy {
     this.maxRetries = maxRetries;
   }
 
-  onSuccess(jobs: Job[]) {
-    jobs.forEach((job) => {
-      job.status = 'success';
-      job.lastRunAt = new Date();
-      job.createdAt = new Date();
-      job.nextRunAfter = null;
-    });
-  }
-
   onFailure(jobs: Job[]) {
     jobs.forEach((job) => {
       job.retries += 1;
