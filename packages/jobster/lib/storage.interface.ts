@@ -1,7 +1,25 @@
 import { Job } from './job.ts';
 
+export type JobsterJobListener = {
+  id: string;
+  payload: {
+    /** jobs listened by the jobster instance */
+    jobNames: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ListenerData = {
+  numberOfListeners: number;
+  numberOfPendingJobs: number;
+};
+
 export interface IStorage<Transaction> {
   initialize(transaction: Transaction): Promise<void>;
+
+  /** tell jobster you are still alive and get back number of listener per event */
+  heartbeat(jobsterId: string, jobNames: string[], transaction: Transaction): Promise<Map<string, ListenerData>>;
 
   persist(job: Job, transaction: Transaction): Promise<void>;
 

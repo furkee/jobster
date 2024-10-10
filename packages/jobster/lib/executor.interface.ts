@@ -4,7 +4,7 @@
  */
 export interface IExecutor<Transaction> {
   /** callback to be used by jobster to initiate a new transaction to run queries in */
-  transaction<QResult>(callback: (transaction: Transaction) => Promise<QResult>): Promise<void>;
+  transaction<QResult>(callback: (transaction: Transaction) => Promise<QResult>): Promise<QResult>;
   /** raw query runner to be used by jobster when it needs to run queries within transactions of the app */
   run(sql: string, params: any[], transaction: Transaction): Promise<any>;
 }

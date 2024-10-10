@@ -28,7 +28,7 @@ suite('posgres', { timeout: 5000 }, () => {
       },
     });
 
-    await jobster.initializeDb();
+    await jobster.initialize();
   });
 
   after(async () => {
@@ -36,7 +36,7 @@ suite('posgres', { timeout: 5000 }, () => {
   });
 
   beforeEach(async () => {
-    jobster.start();
+    await jobster.start();
   });
 
   afterEach(async () => {
@@ -87,7 +87,6 @@ suite('posgres', { timeout: 5000 }, () => {
     });
 
     await executor.transaction(async (transaction) => jobster.queue(job, transaction));
-    jobster.start();
 
     await new Promise((r) => jobster.listenJobsterEvents('job.finished', r));
 

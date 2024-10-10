@@ -13,7 +13,7 @@ export class MemoryStorage implements IStorage<void> {
   }
 
   async success(jobs: Job[]) {
-    await this.#retryStrategy.onSuccess(jobs);
+    jobs.forEach((job) => this.#jobs.delete(job.id));
   }
 
   async fail(jobs: Job[]) {
@@ -34,5 +34,9 @@ export class MemoryStorage implements IStorage<void> {
       job.updatedAt = new Date();
       return job;
     });
+  }
+
+  async heartbeat(jobsterId: string, jobNames: string[], transaction: void) {
+    return new Map();
   }
 }

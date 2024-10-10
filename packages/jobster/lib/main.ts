@@ -12,7 +12,7 @@ async function main() {
     },
   });
 
-  await jobster.initializeDb();
+  await jobster.initialize();
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {
   //   await new Promise((resolve, reject) => {
@@ -30,7 +30,7 @@ async function main() {
 
   await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }));
 
-  jobster.start();
+  await jobster.start();
 }
 
 main();

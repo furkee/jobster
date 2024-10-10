@@ -9,12 +9,13 @@ export class PgExecutor implements IExecutor<pg.PoolClient> {
     this.pool = pool;
   }
 
-  async transaction(callback: (client: pg.PoolClient) => any) {
+  async transaction<T>(callback: (client: pg.PoolClient) => Promise<T>) {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      await callback(client);
+      const res = await callback(client);
       await client.query('COMMIT');
+      return res;
     } catch (e) {
       await client.query('ROLLBACK');
       throw e;

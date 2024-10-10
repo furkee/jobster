@@ -47,72 +47,150 @@ export type JobsterOptions<Transaction, JobNames extends string = string> = {
   storage: IStorage<Transaction>;
   executor: IExecutor<Transaction>;
   jobConfig: Record<JobNames, JobConfig>;
+  /**
+   * heartbeat frequency in ms. jobster also scales its worker based on number of available jobs
+   * and number of jobster instances running.
+   *
+   * @default 5000
+   */
+  heartbeatFrequency?: number;
   logger?: ILogger;
 };
 
-export type JobsterEvent = 'job.started' | 'job.finished';
+export type JobsterEvent = 'job.started' | 'job.finished' | 'jobster.scale.up' | 'jobster.scale.down';
 
 export class Jobster<Transaction, JobNames extends string = string> {
   #logger: ILogger;
 
+  #jobsterId = crypto.randomUUID();
   #jobEmitter = new eventemitter.EventEmitter2({ wildcard: false, ignoreErrors: false });
   /** event emitter that will let library users know about whats happening in jobsters, not actual job handling */
   #jobsterEmitter = new eventemitter.EventEmitter2({ wildcard: false, ignoreErrors: true });
   #workers: Map<JobNames, Worker<Transaction>[]>;
   #storage: IStorage<Transaction>;
   #executor: IExecutor<Transaction>;
+  #heartbeatFrequency: number;
+  #heartbeatTimer: NodeJS.Timeout | undefined;
   #jobConfig: JobsterOptions<Transaction, JobNames>['jobConfig'];
 
-  constructor({ logger, storage, executor, jobConfig }: JobsterOptions<Transaction, JobNames>) {
+  constructor({
+    logger,
+    storage,
+    executor,
+    jobConfig,
+    heartbeatFrequency = 5000,
+  }: JobsterOptions<Transaction, JobNames>) {
     this.#logger = logger ?? new Logger(Jobster.name);
     this.#executor = executor;
     this.#storage = storage;
     this.#jobConfig = jobConfig;
+    this.#heartbeatFrequency = heartbeatFrequency;
     this.#workers = new Map(
       Object.keys(jobConfig).map((jobName) => {
-        const {
-          minWorkers = 1,
-          pollFrequency = 1000,
-          batchSize = 1,
-          retryStrategy = new ExponentialBackoff(),
-          disabled = false,
-        } = jobConfig[jobName as JobNames];
+        const { minWorkers = 1, disabled = false } = jobConfig[jobName as JobNames];
         return [
           jobName as JobNames,
           disabled
             ? []
-            : new Array(minWorkers).fill(null).map(
-                () =>
-                  new Worker({
-                    batchSize,
-                    emitter: this.#jobEmitter,
-                    executor,
-                    jobName,
-                    jobsterEmitter: this.#jobsterEmitter,
-                    logger,
-                    pollFrequency,
-                    retryStrategy,
-                    storage,
-                  }),
-              ),
+            : new Array(minWorkers)
+                .fill(null)
+                .map(() => this.#createWorker(jobName as JobNames, jobConfig[jobName as JobNames]!)),
         ];
       }),
     );
   }
 
-  async initializeDb() {
-    await this.#executor.transaction((transaction) => this.#storage.initialize(transaction));
+  #createWorker<T extends JobNames>(jobName: T, jobConfig: JobsterOptions<Transaction, JobNames>['jobConfig'][T]) {
+    const { pollFrequency = 1000, batchSize = 1, retryStrategy = new ExponentialBackoff() } = jobConfig;
+    return new Worker({
+      batchSize,
+      emitter: this.#jobEmitter,
+      executor: this.#executor,
+      jobName,
+      jobsterEmitter: this.#jobsterEmitter,
+      logger: this.#logger instanceof Logger ? undefined : this.#logger,
+      pollFrequency,
+      retryStrategy,
+      storage: this.#storage,
+    });
   }
 
-  start() {
+  async initialize(skipDb = false) {
+    if (!skipDb) {
+      await this.#executor.transaction((transaction) => this.#storage.initialize(transaction));
+    }
+  }
+
+  async start() {
+    await this.#heartbeat();
+    this.#heartbeatTimer = setInterval(() => this.#heartbeat(), this.#heartbeatFrequency);
+
     this.#workers.forEach((workers) => workers.forEach((worker) => worker.start()));
+
     this.#logger.debug('jobster started');
   }
 
+  async #heartbeat() {
+    const listenerData = await this.#executor.transaction((transaction) =>
+      this.#storage.heartbeat(this.#jobsterId, Object.keys(this.#jobConfig), transaction),
+    );
+
+    for (const [job, { numberOfListeners, numberOfPendingJobs }] of listenerData.entries()) {
+      const workerConfig = this.#jobConfig[job as JobNames];
+
+      if (!workerConfig || workerConfig.disabled) {
+        continue;
+      }
+
+      let workers = this.#workers.get(job as JobNames);
+
+      if (!workers) {
+        workers = [];
+        this.#workers.set(job as JobNames, workers);
+      }
+
+      const { minWorkers = 1, maxWorkers = 20, batchSize = 1 } = workerConfig;
+      const numActiveWorkers = workers.length;
+      const idealNumWorkers = Math.round(numberOfPendingJobs / (numberOfListeners * batchSize));
+      let change = idealNumWorkers - numActiveWorkers;
+
+      if (change > maxWorkers) {
+        change = maxWorkers - numActiveWorkers;
+      } else if (change < minWorkers) {
+        change = minWorkers - numActiveWorkers;
+      }
+
+      this.#logger.debug(`scaling for job "${job}"`, {
+        numberOfListeners,
+        numberOfPendingJobs,
+        numActiveWorkers,
+        minWorkers,
+        maxWorkers,
+        idealNumWorkers,
+        change,
+      });
+
+      if (change > 0) {
+        const newWorkers = new Array(change)
+          .fill(null)
+          .map(() => this.#createWorker(job as JobNames, this.#jobConfig[job as JobNames]!));
+        workers.concat(newWorkers);
+        newWorkers.forEach((worker) => worker.start());
+        this.#jobsterEmitter.emit('jobster.scale.up' as JobsterEvent, { job, change, numWorkers: workers.length });
+      } else if (change < 0) {
+        const removed = workers.splice(0, Math.abs(change));
+        removed.forEach((worker) => worker.stop());
+        this.#jobsterEmitter.emit('jobster.scale.down' as JobsterEvent, { job, change, numWorkers: workers.length });
+      }
+    }
+  }
+
   stop() {
+    clearInterval(this.#heartbeatTimer);
     this.#jobEmitter.removeAllListeners();
     this.#jobsterEmitter.removeAllListeners();
     this.#workers.forEach((workers) => workers.forEach((worker) => worker.stop()));
+
     this.#logger.debug('jobster stopped');
   }
 
@@ -127,7 +205,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
     await this.#storage.persist(job, transaction);
   }
 
-  listenJobsterEvents(event: JobsterEvent, listener: (jobs: Job[]) => void) {
+  listenJobsterEvents(event: JobsterEvent, listener: (data: any) => void) {
     this.#jobsterEmitter.on(event, listener);
   }
 }

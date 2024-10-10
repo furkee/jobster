@@ -1,4 +1,12 @@
-import { type IExecutor, type ILogger, type IStorage, Job, Logger } from '@jobster/core';
+import {
+  type IExecutor,
+  type ILogger,
+  type IStorage,
+  Job,
+  type JobsterJobListener,
+  type ListenerData,
+  Logger,
+} from '@jobster/core';
 
 export type PostgresStorageOptions<Transaction> = {
   run: IExecutor<Transaction>['run'];
@@ -56,6 +64,18 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       [],
       transaction,
     );
+    await this.#run(
+      /* sql */ `
+      CREATE TABLE IF NOT EXISTS "JobsterJobListeners" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        payload JSONB NOT NULL,
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      `,
+      [],
+      transaction,
+    );
     const indexQuery = (idxName: string, idxCol: string) => /* sql */ `
       DO $$
       BEGIN
@@ -71,10 +91,74 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
     `;
     await Promise.all([
       this.#run(indexQuery('jobster_job_name_idx', 'name'), [], transaction),
+      this.#run(indexQuery('jobster_job_status_idx', 'status'), [], transaction),
+      this.#run(indexQuery('jobster_job_next_run_after_idx', 'nextRunAfter'), [], transaction),
       this.#run(indexQuery('jobster_job_created_at_idx', 'createdAt'), [], transaction),
       this.#run(indexQuery('jobster_job_updated_at_idx', 'updatedAt'), [], transaction),
     ]);
     this.#logger.debug('postgres storage initialized ');
+  }
+
+  async heartbeat(jobsterId: string, jobNames: string[], transaction: Transaction) {
+    const payload = JSON.stringify({ jobNames } as JobsterJobListener['payload']);
+    const [activeListeners, availableJobs] = await Promise.all([
+      // collect active listener data
+      this.#run(
+        /* sql*/ `
+        SELECT * FROM "JobsterJobListeners" WHERE id != ${this.#getQueryPlaceholder(0)} AND "updatedAt" > NOW() - INTERVAL '1 minutes';
+      `,
+        [jobsterId],
+        transaction,
+      ) as Promise<JobsterJobListener[]>,
+      // collect available number of jobs per jobName
+      this.#run(
+        /* sql */ `
+        SELECT name, COUNT(*) as count FROM "JobsterJobs"
+          WHERE (
+            status = 'pending'
+              AND "nextRunAfter" < NOW()
+            ) OR (
+            status = 'running'
+              AND "updatedAt" < NOW() - INTERVAL '1 minutes'
+          )
+          GROUP BY name
+      `,
+        [],
+        transaction,
+      ) as Promise<{ name: string; count: number }[]>,
+      // insert current jobster into jobster listeners table
+      this.#run(
+        /* sql */ `
+        INSERT INTO "JobsterJobListeners" (id, payload)
+          VALUES (${this.#getQueryPlaceholder(0)}, ${this.#getQueryPlaceholder(1)})
+        ON CONFLICT (id)
+          DO UPDATE SET payload = ${this.#getQueryPlaceholder(2)}, "updatedAt" = ${this.#getQueryPlaceholder(3)}
+      `,
+        [jobsterId, payload, payload, new Date().toISOString()],
+        transaction,
+      ),
+      // cleanup inactive jobster listeners
+      this.#run(
+        /* sql */ `DELETE FROM "JobsterJobListeners" where "updatedAt" < NOW() - INTERVAL '5 minutes'`,
+        [],
+        transaction,
+      ),
+    ]);
+
+    const listenerData = new Map<string, ListenerData>();
+    const jobData = new Map(availableJobs.map((j) => [j.name, j.count]));
+
+    activeListeners.forEach((listener) => {
+      listener.payload.jobNames.forEach((job) => {
+        const cur = listenerData.get(job);
+        listenerData.set(job, {
+          numberOfListeners: (cur?.numberOfListeners ?? 0) + 1,
+          numberOfPendingJobs: jobData.get(job) ?? 0,
+        });
+      });
+    });
+
+    return listenerData;
   }
 
   async persist(job: Job, transaction: Transaction) {
@@ -171,7 +255,7 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
       UPDATE "JobsterJobs" SET
         status = 'running',
         "updatedAt" = NOW()
-      WHERE id = (
+      WHERE id IN (
         SELECT id FROM "JobsterJobs"
           WHERE
             name = ${this.#getQueryPlaceholder(0)} AND ((

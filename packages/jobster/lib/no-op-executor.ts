@@ -4,7 +4,7 @@ import { type IExecutor } from './executor.interface.ts';
 export class NoOpExecutor implements IExecutor<void> {
   async run(sql: string, params: any[], transaction: void): Promise<void> {}
 
-  async transaction<QResult = void>(callback: (transaction: void) => Promise<QResult>): Promise<void> {
-    callback();
+  async transaction<QResult>(callback: (transaction: void) => Promise<QResult>): Promise<QResult> {
+    return await callback();
   }
 }
