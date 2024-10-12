@@ -18,8 +18,9 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "strict": true,
-    "allowJs": false
+    "allowJs": false,
+    "composite": true
   },
-  "include": ["src", "test"],
+  "include": ["src"],
   "references": [{ "path": "../jobster" }]
 }

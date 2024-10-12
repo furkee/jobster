@@ -7,10 +7,10 @@ import {
   type JobsterTypes,
   type ListenerData,
   Logger,
-} from '@jobster/core';
+} from "@jobster/core";
 
 export type PostgresStorageOptions<Transaction> = {
-  run: IExecutor<Transaction>['run'];
+  run: IExecutor<Transaction>["run"];
   /**
    * Return the placeholder string based on the array index of the supplied values, eg
    *
@@ -23,11 +23,11 @@ export type PostgresStorageOptions<Transaction> = {
   logger?: ILogger;
 };
 
-export class PostgresStorage<Transaction = JobsterTypes['transaction']> implements IStorage<Transaction> {
+export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implements IStorage<Transaction> {
   #logger: ILogger;
 
-  #run: PostgresStorageOptions<Transaction>['run'];
-  #getQueryPlaceholder: PostgresStorageOptions<Transaction>['getQueryPlaceholder'];
+  #run: PostgresStorageOptions<Transaction>["run"];
+  #getQueryPlaceholder: PostgresStorageOptions<Transaction>["getQueryPlaceholder"];
 
   constructor({ run, getQueryPlaceholder, logger }: PostgresStorageOptions<Transaction>) {
     this.#logger = logger ?? new Logger(PostgresStorage.name);
@@ -91,17 +91,17 @@ export class PostgresStorage<Transaction = JobsterTypes['transaction']> implemen
       END $$;
     `;
     await Promise.all([
-      this.#run(indexQuery('jobster_job_name_idx', 'name'), [], transaction),
-      this.#run(indexQuery('jobster_job_status_idx', 'status'), [], transaction),
-      this.#run(indexQuery('jobster_job_next_run_after_idx', 'nextRunAfter'), [], transaction),
-      this.#run(indexQuery('jobster_job_created_at_idx', 'createdAt'), [], transaction),
-      this.#run(indexQuery('jobster_job_updated_at_idx', 'updatedAt'), [], transaction),
+      this.#run(indexQuery("jobster_job_name_idx", "name"), [], transaction),
+      this.#run(indexQuery("jobster_job_status_idx", "status"), [], transaction),
+      this.#run(indexQuery("jobster_job_next_run_after_idx", "nextRunAfter"), [], transaction),
+      this.#run(indexQuery("jobster_job_created_at_idx", "createdAt"), [], transaction),
+      this.#run(indexQuery("jobster_job_updated_at_idx", "updatedAt"), [], transaction),
     ]);
-    this.#logger.debug('postgres storage initialized ');
+    this.#logger.debug("postgres storage initialized ");
   }
 
   async heartbeat(jobsterId: string, jobNames: string[], transaction: Transaction) {
-    const payload = JSON.stringify({ jobNames } as JobsterJobListener['payload']);
+    const payload = JSON.stringify({ jobNames } as JobsterJobListener["payload"]);
     const [activeListeners, availableJobs] = await Promise.all([
       // collect active listener data
       this.#run(
@@ -206,7 +206,7 @@ export class PostgresStorage<Transaction = JobsterTypes['transaction']> implemen
 
   async success(jobs: Job[], transaction: Transaction) {
     await this.#run(
-      /* sql */ `DELETE FROM "JobsterJobs" WHERE id IN (${jobs.map((_, i) => `${this.#getQueryPlaceholder(i)}`).join(',')})`,
+      /* sql */ `DELETE FROM "JobsterJobs" WHERE id IN (${jobs.map((_, i) => `${this.#getQueryPlaceholder(i)}`).join(",")})`,
       jobs.map((job) => job.id),
       transaction,
     );
@@ -232,9 +232,9 @@ export class PostgresStorage<Transaction = JobsterTypes['transaction']> implemen
                 `(${new Array(6)
                   .fill(null)
                   .map((_, j) => this.#getQueryPlaceholder(i * 6 + j))
-                  .join(',')})`,
+                  .join(",")})`,
             )
-            .join(',')}
+            .join(",")}
       ) AS v(id, status, retries, "lastRunAt", "nextRunAfter", "updatedAt")
       WHERE j.id = (v.id)::uuid;
       `,
