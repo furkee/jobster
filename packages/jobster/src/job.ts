@@ -1,10 +1,10 @@
-import type { JobsterTypes } from './@types/jobster-types.js';
+import type { JobsterTypes } from "./jobster-types.interface.ts";
 
-export type JobStatus = 'pending' | 'running' | 'success' | 'failure';
+export type JobStatus = "pending" | "running" | "success" | "failure";
 
 export type JobParams<
   Payload extends Record<string, unknown> = Record<string, unknown>,
-  JobNames extends string = JobsterTypes['jobNames'],
+  JobNames extends string = JobsterTypes["jobNames"],
 > = {
   id?: string;
   name: JobNames;
@@ -19,7 +19,7 @@ export type JobParams<
 
 export class Job<
   Payload extends Record<string, unknown> = Record<string, unknown>,
-  JobNames extends string = JobsterTypes['jobNames'],
+  JobNames extends string = JobsterTypes["jobNames"],
 > {
   id: string;
   name: JobNames;
@@ -43,12 +43,12 @@ export class Job<
     updatedAt,
   }: JobParams<Payload, JobNames>) {
     if (!name || !payload) {
-      throw new Error('Cannot create a job without name or payload');
+      throw new Error("Cannot create a job without name or payload");
     }
     this.id = id || crypto.randomUUID();
     this.name = name;
     this.payload = payload;
-    this.status = status || 'pending';
+    this.status = status || "pending";
     this.retries = retries || 0;
     this.lastRunAt = lastRunAt || null;
     this.nextRunAfter = nextRunAfter || new Date();

@@ -1,18 +1,18 @@
-import { ExponentialBackoff, Job, type JobStatus, Jobster } from '@jobster/core';
+import { ExponentialBackoff, Job, type JobStatus, Jobster } from "@jobster/core";
 
-import assert from 'node:assert/strict';
-import { after, afterEach, before, beforeEach, suite, test } from 'node:test';
-import pg from 'pg';
+import assert from "node:assert/strict";
+import { after, afterEach, before, beforeEach, suite, test } from "node:test";
+import pg from "pg";
 
-import { PgExecutor, PostgresStorage } from '../lib/index.ts';
+import { PgExecutor, PostgresStorage } from "../src/index.ts";
 
-suite('posgres', { timeout: 5000 }, () => {
+suite("posgres", { timeout: 5000 }, () => {
   let jobster: Jobster<pg.PoolClient>;
   let pool: pg.Pool;
   let executor: PgExecutor;
 
   before(async () => {
-    pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
+    pool = new pg.Pool({ user: "dbadmin", password: "password", database: "jobster" });
     executor = new PgExecutor(pool);
     jobster = new Jobster({
       executor,
@@ -44,8 +44,8 @@ suite('posgres', { timeout: 5000 }, () => {
     await pool.query('DELETE FROM "JobsterJobs"');
   });
 
-  test('success run', async () => {
-    const job = new Job({ name: 'test', payload: { hello: 'world' } });
+  test("success run", async () => {
+    const job = new Job({ name: "test", payload: { hello: "world" } });
 
     jobster.listen(job.name, async ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
@@ -53,33 +53,33 @@ suite('posgres', { timeout: 5000 }, () => {
 
     await executor.transaction(async (transaction) => jobster.queue(job, transaction));
 
-    await new Promise((r) => jobster.listenJobsterEvents('job.finished', r));
+    await new Promise((r) => jobster.listenJobsterEvents("job.finished", r));
 
     const res = await pool.query('SELECT * FROM "JobsterJobs" WHERE id = $1', [job.id]);
 
     assert.equal(res.rows.length, 0);
   });
 
-  test('failure via throw run', async () => {
-    const job = new Job({ name: 'test', payload: { hello: 'world' } });
+  test("failure via throw run", async () => {
+    const job = new Job({ name: "test", payload: { hello: "world" } });
 
     jobster.listen(job.name, ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
-      throw new Error('fail');
+      throw new Error("fail");
     });
 
     await executor.transaction(async (transaction) => jobster.queue(job, transaction));
 
-    await new Promise((r) => jobster.listenJobsterEvents('job.finished', r));
+    await new Promise((r) => jobster.listenJobsterEvents("job.finished", r));
 
     const res = await pool.query('SELECT * FROM "JobsterJobs" WHERE id = $1', [job.id]);
     const updatedJob = res.rows[0] as Job;
 
-    assert.equal(updatedJob.status, 'failure' as JobStatus);
+    assert.equal(updatedJob.status, "failure" as JobStatus);
   });
 
-  test('failure via returning job id run', async () => {
-    const job = new Job({ name: 'test', payload: { hello: 'world' } });
+  test("failure via returning job id run", async () => {
+    const job = new Job({ name: "test", payload: { hello: "world" } });
 
     jobster.listen(job.name, ([resolvedJob]) => {
       assert.equal(resolvedJob.id, job.id);
@@ -88,11 +88,11 @@ suite('posgres', { timeout: 5000 }, () => {
 
     await executor.transaction(async (transaction) => jobster.queue(job, transaction));
 
-    await new Promise((r) => jobster.listenJobsterEvents('job.finished', r));
+    await new Promise((r) => jobster.listenJobsterEvents("job.finished", r));
 
     const res = await pool.query('SELECT * FROM "JobsterJobs" WHERE id = $1', [job.id]);
     const updatedJob = res.rows[0] as Job;
 
-    assert.equal(updatedJob.status, 'failure' as JobStatus);
+    assert.equal(updatedJob.status, "failure" as JobStatus);
   });
 });

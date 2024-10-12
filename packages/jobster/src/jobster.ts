@@ -1,14 +1,14 @@
-import eventemitter from 'eventemitter2';
+import eventemitter from "eventemitter2";
 
-import type { JobsterTypes } from './@types/jobster-types.js';
-import type { IExecutor } from './executor.interface.ts';
-import { ExponentialBackoff } from './exponential-backoff.ts';
-import type { Job } from './job.ts';
-import { type ILogger, Logger } from './logger.ts';
-import type { IRetryStrategy } from './retry-strategy.interface.ts';
-import type { IStorage } from './storage.interface.ts';
-import { times } from './util.ts';
-import { Worker } from './worker.ts';
+import type { IExecutor } from "./executor.interface.ts";
+import { ExponentialBackoff } from "./exponential-backoff.ts";
+import type { Job } from "./job.ts";
+import type { JobsterTypes } from "./jobster-types.interface.ts";
+import { type ILogger, Logger } from "./logger.ts";
+import type { IRetryStrategy } from "./retry-strategy.interface.ts";
+import type { IStorage } from "./storage.interface.ts";
+import { times } from "./util.ts";
+import { Worker } from "./worker.ts";
 
 export type JobConfig = {
   /** @default 1 */
@@ -46,8 +46,8 @@ export type JobHandler = (
 ) => void | Promise<void> | { failedJobIds: string[] } | Promise<{ failedJobIds: string[] }>;
 
 export type JobsterOptions<
-  Transaction = JobsterTypes['transaction'],
-  JobNames extends string = JobsterTypes['jobNames'],
+  Transaction = JobsterTypes["transaction"],
+  JobNames extends string = JobsterTypes["jobNames"],
 > = {
   storage: IStorage<Transaction>;
   executor: IExecutor<Transaction>;
@@ -62,9 +62,9 @@ export type JobsterOptions<
   logger?: ILogger;
 };
 
-export type JobsterEvent = 'job.started' | 'job.finished' | 'jobster.scale.up' | 'jobster.scale.down';
+export type JobsterEvent = "job.started" | "job.finished" | "jobster.scale.up" | "jobster.scale.down";
 
-export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends string = JobsterTypes['jobNames']> {
+export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends string = JobsterTypes["jobNames"]> {
   #logger: ILogger;
 
   #jobsterId = crypto.randomUUID();
@@ -76,7 +76,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
   #executor: IExecutor<Transaction>;
   #heartbeatFrequency: number;
   #heartbeatTimer: NodeJS.Timeout | undefined;
-  #jobConfig: JobsterOptions<Transaction, JobNames>['jobConfig'];
+  #jobConfig: JobsterOptions<Transaction, JobNames>["jobConfig"];
 
   constructor({
     logger,
@@ -103,7 +103,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
     );
   }
 
-  #createWorker<T extends JobNames>(jobName: T, jobConfig: JobsterOptions<Transaction, JobNames>['jobConfig'][T]) {
+  #createWorker<T extends JobNames>(jobName: T, jobConfig: JobsterOptions<Transaction, JobNames>["jobConfig"][T]) {
     const { pollFrequency = 1000, batchSize = 1, retryStrategy = new ExponentialBackoff() } = jobConfig;
     return new Worker({
       batchSize,
@@ -134,7 +134,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
       }
     }
 
-    this.#logger.debug('jobster started');
+    this.#logger.debug("jobster started");
   }
 
   async #heartbeat() {
@@ -185,7 +185,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
           worker.start();
         }
 
-        this.#jobsterEmitter.emit('jobster.scale.up' as JobsterEvent, { job, change, numWorkers: workers.length });
+        this.#jobsterEmitter.emit("jobster.scale.up" as JobsterEvent, { job, change, numWorkers: workers.length });
       } else if (change < 0) {
         const removed = workers.splice(0, Math.abs(change));
 
@@ -193,7 +193,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
           worker.start();
         }
 
-        this.#jobsterEmitter.emit('jobster.scale.down' as JobsterEvent, { job, change, numWorkers: workers.length });
+        this.#jobsterEmitter.emit("jobster.scale.down" as JobsterEvent, { job, change, numWorkers: workers.length });
       }
     }
   }
@@ -209,7 +209,7 @@ export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends
       }
     }
 
-    this.#logger.debug('jobster stopped');
+    this.#logger.debug("jobster stopped");
   }
 
   listen(jobName: JobNames, listener: JobHandler) {

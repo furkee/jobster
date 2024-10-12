@@ -14,9 +14,12 @@ importers:
       '@types/node':
         specifier: ^22.7.4
         version: 22.7.4
+      tslib:
+        specifier: ^2.7.0
+        version: 2.7.0
       typescript:
-        specifier: ^5.6.2
-        version: 5.6.2
+        specifier: 5.7.0-beta
+        version: 5.7.0-beta
 
   packages/jobster:
     devDependencies:
@@ -184,8 +187,11 @@ packages:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
 
-  typescript@5.6.2:
-    resolution: {integrity: sha512-NW8ByodCSNCwZeghjN3o+JX5OFH0Ojg6sadjEKY4huZ52TqbJTJnDo5+Tw98lSy63NZvi4n+ez5m2u5d4PkZyw==}
+  tslib@2.7.0:
+    resolution: {integrity: sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==}
+
+  typescript@5.7.0-beta:
+    resolution: {integrity: sha512-opDlmEnzKdl082N5piLS43lsyugg0aORdv+XnNzMv5yP5VtBWuZhFDxU8lizmhW+PEFa/fZiShYRBxKsrkTDMQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -318,7 +324,9 @@ snapshots:
 
   split2@4.2.0: {}
 
-  typescript@5.6.2: {}
+  tslib@2.7.0: {}
+
+  typescript@5.7.0-beta: {}
 
   undici-types@6.19.8: {}
 

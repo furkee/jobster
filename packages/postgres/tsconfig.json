@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "module": "NodeNext",
-    "target": "ESNext",
+    "target": "ES6",
     "moduleResolution": "NodeNext",
     "lib": ["ESNext"],
     "allowSyntheticDefaultImports": true,
-    "noEmit": true,
     "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "noEmit": false,
+    "declaration": true,
     "esModuleInterop": true,
     "importHelpers": true,
     "sourceMap": true,
@@ -18,6 +20,6 @@
     "strict": true,
     "allowJs": false
   },
-  "include": ["lib", "test"],
+  "include": ["src", "test"],
   "references": [{ "path": "../jobster" }]
 }

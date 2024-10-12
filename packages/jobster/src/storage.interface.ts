@@ -1,5 +1,5 @@
-import type { JobsterTypes } from './@types/jobster-types.js';
-import type { Job } from './job.ts';
+import type { Job } from "./job.ts";
+import type { JobsterTypes } from "./jobster-types.interface.ts";
 
 export type JobsterJobListener = {
   id: string;
@@ -17,8 +17,8 @@ export type ListenerData = {
 };
 
 export interface IStorage<
-  Transaction = JobsterTypes['transaction'],
-  JobNames extends string = JobsterTypes['jobNames'],
+  Transaction = JobsterTypes["transaction"],
+  JobNames extends string = JobsterTypes["jobNames"],
 > {
   initialize(transaction: Transaction): Promise<void>;
 

@@ -1,12 +1,12 @@
-import { Job, Jobster, type JobsterTypes } from '@jobster/core';
+import { Job, Jobster, type JobsterTypes } from "@jobster/core";
 
-import pg from 'pg';
+import pg from "pg";
 
-import { PgExecutor } from './pg-executor.ts';
-import { PostgresStorage } from './postgres-storage.ts';
+import { PgExecutor } from "./pg-executor.ts";
+import { PostgresStorage } from "./postgres-storage.ts";
 
 async function main() {
-  const pool = new pg.Pool({ user: 'dbadmin', password: 'password', database: 'jobster' });
+  const pool = new pg.Pool({ user: "dbadmin", password: "password", database: "jobster" });
   const executor = new PgExecutor(pool);
   const storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
   const jobster = new Jobster({
@@ -18,7 +18,7 @@ async function main() {
         maxWorkers: 20,
         minWorkers: 2,
       },
-      'tournament.started': {
+      "tournament.started": {
         batchSize: 1,
         minWorkers: 1,
         maxWorkers: 10,
@@ -35,20 +35,20 @@ async function main() {
   //   });
   // });
 
-  jobster.listen('event', async (job) => {
+  jobster.listen("event", async (job) => {
     await new Promise((resolve, reject) => {
-      console.log({ message: 'reject', data: job });
-      reject(new Error('failed'));
+      console.log({ message: "reject", data: job });
+      reject(new Error("failed"));
     });
   });
 
   await jobster.start();
 
   await executor.transaction(async (transaction) => {
-    await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }), transaction);
+    await jobster.queue(new Job({ name: "event", payload: { hello: "world" } }), transaction);
   });
 
-  process.on('SIGINT', async () => {
+  process.on("SIGINT", async () => {
     jobster.stop();
     await pool.end();
   });
@@ -56,7 +56,7 @@ async function main() {
 
 Error.stackTraceLimit = Number.POSITIVE_INFINITY;
 
-process.on('unhandledRejection', console.error);
-process.on('uncaughtException', console.error);
+process.on("unhandledRejection", console.error);
+process.on("uncaughtException", console.error);
 
 main();

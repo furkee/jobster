@@ -1,7 +1,7 @@
-import { Job } from './job.ts';
-import { Jobster } from './jobster.ts';
-import { MemoryStorage } from './memory-storage.ts';
-import { NoOpExecutor } from './no-op-executor.ts';
+import { Job } from "./job.ts";
+import { Jobster } from "./jobster.ts";
+import { MemoryStorage } from "./memory-storage.ts";
+import { NoOpExecutor } from "./no-op-executor.ts";
 
 async function main() {
   const jobster = new Jobster<void>({
@@ -22,14 +22,14 @@ async function main() {
   //   });
   // });
 
-  jobster.listen('event', async (job) => {
+  jobster.listen("event", async (job) => {
     await new Promise((resolve, reject) => {
-      console.log({ message: 'reject', data: job });
-      reject(new Error('failed'));
+      console.log({ message: "reject", data: job });
+      reject(new Error("failed"));
     });
   });
 
-  await jobster.queue(new Job({ name: 'event', payload: { hello: 'world' } }));
+  await jobster.queue(new Job({ name: "event", payload: { hello: "world" } }));
 
   await jobster.start();
 }

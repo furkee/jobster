@@ -1,21 +1,23 @@
 {
   "name": "@jobster/core",
   "version": "0.0.1",
-  "main": "lib/index.ts",
+  "main": "src/index.ts",
   "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "types": "./lib/index.ts",
-        "default": "./lib/index.ts"
+      "types": "./src/index.ts",
+      "__comment": "TODO running node with --conditions=production will use production, instead use conditions for development",
+      "production": {
+        "require": "./dist/cjs/index.js",
+        "import": "./dist/esm/index.js"
       },
-      "require": "./lib/index.ts"
+      "default": "./src/index.ts"
     }
   },
   "scripts": {
-    "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types lib/main.ts",
-    "start": "node build/main.js",
-    "build": "rm -rf build || true && tsc"
+    "dev": "node --watch --no-warnings=ExperimentalWarning --experimental-strip-types src/main.ts",
+    "start": "node dist/esm/main.js",
+    "build": "rm -rf dist || true && tsc"
   },
   "peerDependencies": {
     "eventemitter2": "^6.4.9"
