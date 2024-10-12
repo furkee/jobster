@@ -9,6 +9,7 @@ async function main() {
     executor: new NoOpExecutor(),
     jobConfig: {
       event: {},
+      mevent: {},
     },
   });
 

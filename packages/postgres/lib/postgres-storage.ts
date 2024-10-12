@@ -2,8 +2,9 @@ import {
   type IExecutor,
   type ILogger,
   type IStorage,
-  Job,
+  type Job,
   type JobsterJobListener,
+  type JobsterTypes,
   type ListenerData,
   Logger,
 } from '@jobster/core';
@@ -22,7 +23,7 @@ export type PostgresStorageOptions<Transaction> = {
   logger?: ILogger;
 };
 
-export class PostgresStorage<Transaction> implements IStorage<Transaction> {
+export class PostgresStorage<Transaction = JobsterTypes['transaction']> implements IStorage<Transaction> {
   #logger: ILogger;
 
   #run: PostgresStorageOptions<Transaction>['run'];
@@ -148,15 +149,15 @@ export class PostgresStorage<Transaction> implements IStorage<Transaction> {
     const listenerData = new Map<string, ListenerData>();
     const jobData = new Map(availableJobs.map((j) => [j.name, j.count]));
 
-    activeListeners.forEach((listener) => {
-      listener.payload.jobNames.forEach((job) => {
+    for (const listener of activeListeners) {
+      for (const job of listener.payload.jobNames) {
         const cur = listenerData.get(job);
         listenerData.set(job, {
           numberOfListeners: (cur?.numberOfListeners ?? 0) + 1,
           numberOfPendingJobs: jobData.get(job) ?? 0,
         });
-      });
-    });
+      }
+    }
 
     return listenerData;
   }

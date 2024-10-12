@@ -1,8 +1,10 @@
+import type { JobsterTypes } from './@types/jobster-types.js';
+
 export type JobStatus = 'pending' | 'running' | 'success' | 'failure';
 
 export type JobParams<
   Payload extends Record<string, unknown> = Record<string, unknown>,
-  JobNames extends string = string,
+  JobNames extends string = JobsterTypes['jobNames'],
 > = {
   id?: string;
   name: JobNames;
@@ -15,12 +17,15 @@ export type JobParams<
   updatedAt?: Date;
 };
 
-export class Job<Payload extends Record<string, unknown> = Record<string, unknown>, JobNames extends string = string> {
+export class Job<
+  Payload extends Record<string, unknown> = Record<string, unknown>,
+  JobNames extends string = JobsterTypes['jobNames'],
+> {
   id: string;
   name: JobNames;
   payload: Payload;
   status: JobStatus;
-  retries: number = 0;
+  retries = 0;
   lastRunAt: Date | null;
   nextRunAfter: Date | null;
   createdAt: Date;

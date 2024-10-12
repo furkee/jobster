@@ -1,18 +1,19 @@
-import { type EventEmitter2 } from 'eventemitter2';
+import type { EventEmitter2 } from "eventemitter2";
 
-import { type IExecutor } from './executor.interface.ts';
-import { type Job } from './job.ts';
-import { type JobHandler, type JobsterEvent } from './jobster.ts';
-import { type ILogger, Logger } from './logger.ts';
-import { type IRetryStrategy } from './retry-strategy.interface.ts';
-import { type IStorage } from './storage.interface.ts';
-import { partition } from './util.ts';
+import type { JobsterTypes } from "./@types/jobster-types.js";
+import type { IExecutor } from "./executor.interface.ts";
+import type { Job } from "./job.ts";
+import type { JobHandler, JobsterEvent } from "./jobster.ts";
+import { type ILogger, Logger } from "./logger.ts";
+import type { IRetryStrategy } from "./retry-strategy.interface.ts";
+import type { IStorage } from "./storage.interface.ts";
+import { partition } from "./util.ts";
 
-export type WorkerOptions<Transaction> = {
+export type WorkerOptions<Transaction = JobsterTypes["transaction"], JobNames = JobsterTypes["jobNames"]> = {
   batchSize: number;
   emitter: InstanceType<typeof EventEmitter2>;
   executor: IExecutor<Transaction>;
-  jobName: string;
+  jobName: JobNames;
   jobsterEmitter: InstanceType<typeof EventEmitter2>;
   logger?: ILogger;
   pollFrequency: number;
@@ -20,18 +21,18 @@ export type WorkerOptions<Transaction> = {
   storage: IStorage<Transaction>;
 };
 
-export class Worker<Transaction> {
+export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends string = JobsterTypes["jobNames"]> {
   #logger: ILogger;
 
   #batchSize: number;
   #emitter: InstanceType<typeof EventEmitter2>;
   #executor: IExecutor<Transaction>;
-  #jobName: string;
+  #jobName: JobNames;
   #jobsterEmitter: InstanceType<typeof EventEmitter2>;
   #pollFrequency: number;
   #retryStrategy: IRetryStrategy;
-  #status: 'running' | 'idling' = 'idling';
-  #storage: IStorage<any>;
+  #status: "running" | "idling" = "idling";
+  #storage: IStorage<Transaction, JobNames>;
   #timer: NodeJS.Timeout | undefined = undefined;
 
   constructor({
@@ -44,7 +45,7 @@ export class Worker<Transaction> {
     pollFrequency,
     retryStrategy,
     storage,
-  }: WorkerOptions<Transaction>) {
+  }: WorkerOptions<Transaction, JobNames>) {
     this.#batchSize = batchSize;
     this.#emitter = emitter;
     this.#executor = executor;
@@ -68,7 +69,7 @@ export class Worker<Transaction> {
       jobs = await this.#storage.getNextJobs(this.#jobName, this.#batchSize, transaction);
 
       if (jobs.length) {
-        this.#jobsterEmitter.emit('job.started' as JobsterEvent, jobs);
+        this.#jobsterEmitter.emit("job.started" as JobsterEvent, jobs);
         try {
           if (!this.#emitter.hasListeners(jobs[0].name)) {
             throw new Error(
@@ -97,29 +98,31 @@ export class Worker<Transaction> {
     });
 
     if (jobs.length) {
-      this.#jobsterEmitter.emit('job.finished' as JobsterEvent, jobs);
+      this.#jobsterEmitter.emit("job.finished" as JobsterEvent, jobs);
     }
 
     this.#logger.debug(`worker ran in ${performance.now() - start} ms, handled ${jobs.length} jobs`);
   }
 
   async start() {
-    if (this.#status === 'running') {
-      this.#logger.warn('worker is already started');
+    if (this.#status === "running") {
+      this.#logger.warn("worker is already started");
       return;
     }
 
-    this.#status = 'running';
-    this.#logger.info('worker is running');
+    this.#status = "running";
+    this.#logger.info("worker is running");
 
-    while (this.#status === 'running') {
+    while (this.#status === "running") {
       await this.#execute();
-      await new Promise((r) => (this.#timer = setTimeout(r, this.#pollFrequency)));
+      await new Promise((r) => {
+        this.#timer = setTimeout(r, this.#pollFrequency);
+      });
     }
   }
 
   stop() {
-    this.#status = 'idling';
+    this.#status = "idling";
     clearTimeout(this.#timer);
   }
 }

@@ -20,8 +20,4 @@
     "composite": true
   },
   "include": ["lib"],
-  "ts-node": {
-    "esm": true,
-    "transpileOnly": true
-  }
 }

@@ -1,4 +1,4 @@
-import { type IExecutor } from './executor.interface.ts';
+import type { IExecutor } from "./executor.interface.ts";
 
 /** dummy executor to use alongside the MemoryStorage */
 export class NoOpExecutor implements IExecutor<void> {

@@ -1,4 +1,4 @@
-import { ExponentialBackoff, Job, Jobster } from '@jobster/core';
+import { Job, Jobster, type JobsterTypes } from '@jobster/core';
 
 import pg from 'pg';
 
@@ -25,7 +25,7 @@ async function main() {
       },
     },
   });
-
+  (({}) as JobsterTypes).jobNames;
   await jobster.initialize();
 
   // jobster.listen('event', async (data: Record<string, unknown>) => {
@@ -54,7 +54,7 @@ async function main() {
   });
 }
 
-Error.stackTraceLimit = Infinity;
+Error.stackTraceLimit = Number.POSITIVE_INFINITY;
 
 process.on('unhandledRejection', console.error);
 process.on('uncaughtException', console.error);

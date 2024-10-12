@@ -1,11 +1,12 @@
 import eventemitter from 'eventemitter2';
 
-import { type IExecutor } from './executor.interface.ts';
+import type { JobsterTypes } from './@types/jobster-types.js';
+import type { IExecutor } from './executor.interface.ts';
 import { ExponentialBackoff } from './exponential-backoff.ts';
-import { Job } from './job.ts';
+import type { Job } from './job.ts';
 import { type ILogger, Logger } from './logger.ts';
-import { type IRetryStrategy } from './retry-strategy.interface.ts';
-import { type IStorage } from './storage.interface.ts';
+import type { IRetryStrategy } from './retry-strategy.interface.ts';
+import type { IStorage } from './storage.interface.ts';
 import { times } from './util.ts';
 import { Worker } from './worker.ts';
 
@@ -44,7 +45,10 @@ export type JobHandler = (
   jobs: Job[],
 ) => void | Promise<void> | { failedJobIds: string[] } | Promise<{ failedJobIds: string[] }>;
 
-export type JobsterOptions<Transaction, JobNames extends string = string> = {
+export type JobsterOptions<
+  Transaction = JobsterTypes['transaction'],
+  JobNames extends string = JobsterTypes['jobNames'],
+> = {
   storage: IStorage<Transaction>;
   executor: IExecutor<Transaction>;
   jobConfig: Record<JobNames, JobConfig>;
@@ -60,14 +64,14 @@ export type JobsterOptions<Transaction, JobNames extends string = string> = {
 
 export type JobsterEvent = 'job.started' | 'job.finished' | 'jobster.scale.up' | 'jobster.scale.down';
 
-export class Jobster<Transaction, JobNames extends string = string> {
+export class Jobster<Transaction = JobsterTypes['transaction'], JobNames extends string = JobsterTypes['jobNames']> {
   #logger: ILogger;
 
   #jobsterId = crypto.randomUUID();
   #jobEmitter = new eventemitter.EventEmitter2({ wildcard: false, ignoreErrors: false });
   /** event emitter that will let library users know about whats happening in jobsters, not actual job handling */
   #jobsterEmitter = new eventemitter.EventEmitter2({ wildcard: false, ignoreErrors: true });
-  #workers: Map<JobNames, Worker<Transaction>[]>;
+  #workers: Map<JobNames, Worker<Transaction, JobNames>[]>;
   #storage: IStorage<Transaction>;
   #executor: IExecutor<Transaction>;
   #heartbeatFrequency: number;
@@ -124,7 +128,11 @@ export class Jobster<Transaction, JobNames extends string = string> {
     await this.#heartbeat();
     this.#heartbeatTimer = setInterval(() => this.#heartbeat(), this.#heartbeatFrequency);
 
-    this.#workers.forEach((workers) => workers.forEach((worker) => worker.start()));
+    for (const workers of this.#workers.values()) {
+      for (const worker of workers) {
+        worker.start();
+      }
+    }
 
     this.#logger.debug('jobster started');
   }
@@ -172,11 +180,19 @@ export class Jobster<Transaction, JobNames extends string = string> {
       if (change > 0) {
         const newWorkers = times(change, () => this.#createWorker(job as JobNames, this.#jobConfig[job as JobNames]!));
         workers.concat(newWorkers);
-        newWorkers.forEach((worker) => worker.start());
+
+        for (const worker of newWorkers) {
+          worker.start();
+        }
+
         this.#jobsterEmitter.emit('jobster.scale.up' as JobsterEvent, { job, change, numWorkers: workers.length });
       } else if (change < 0) {
         const removed = workers.splice(0, Math.abs(change));
-        removed.forEach((worker) => worker.stop());
+
+        for (const worker of removed) {
+          worker.start();
+        }
+
         this.#jobsterEmitter.emit('jobster.scale.down' as JobsterEvent, { job, change, numWorkers: workers.length });
       }
     }
@@ -186,7 +202,12 @@ export class Jobster<Transaction, JobNames extends string = string> {
     clearInterval(this.#heartbeatTimer);
     this.#jobEmitter.removeAllListeners();
     this.#jobsterEmitter.removeAllListeners();
-    this.#workers.forEach((workers) => workers.forEach((worker) => worker.stop()));
+
+    for (const workers of this.#workers.values()) {
+      for (const worker of workers) {
+        worker.stop();
+      }
+    }
 
     this.#logger.debug('jobster stopped');
   }
@@ -202,7 +223,7 @@ export class Jobster<Transaction, JobNames extends string = string> {
     await this.#storage.persist(job, transaction);
   }
 
-  listenJobsterEvents(event: JobsterEvent, listener: (data: any) => void) {
+  listenJobsterEvents(event: JobsterEvent, listener: (data: unknown) => void) {
     this.#jobsterEmitter.on(event, listener);
   }
 }

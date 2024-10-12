@@ -19,9 +19,5 @@
     "allowJs": false
   },
   "include": ["lib", "test"],
-  "ts-node": {
-    "esm": true,
-    "transpileOnly": true
-  },
   "references": [{ "path": "../jobster" }]
 }

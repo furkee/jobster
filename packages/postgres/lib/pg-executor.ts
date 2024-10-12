@@ -1,6 +1,5 @@
-import { type IExecutor } from '@jobster/core';
-
-import pg from 'pg';
+import type { IExecutor } from "@jobster/core";
+import type pg from "pg";
 
 export class PgExecutor implements IExecutor<pg.PoolClient> {
   readonly pool: pg.Pool;
@@ -12,12 +11,12 @@ export class PgExecutor implements IExecutor<pg.PoolClient> {
   async transaction<T>(callback: (client: pg.PoolClient) => Promise<T>) {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
       const res = await callback(client);
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return res;
     } catch (e) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw e;
     } finally {
       client.release();

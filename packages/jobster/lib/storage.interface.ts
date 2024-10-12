@@ -1,4 +1,5 @@
-import { Job } from './job.ts';
+import type { JobsterTypes } from './@types/jobster-types.js';
+import type { Job } from './job.ts';
 
 export type JobsterJobListener = {
   id: string;
@@ -15,7 +16,10 @@ export type ListenerData = {
   numberOfPendingJobs: number;
 };
 
-export interface IStorage<Transaction> {
+export interface IStorage<
+  Transaction = JobsterTypes['transaction'],
+  JobNames extends string = JobsterTypes['jobNames'],
+> {
   initialize(transaction: Transaction): Promise<void>;
 
   /** tell jobster you are still alive and get back number of listener per event */
@@ -23,7 +27,7 @@ export interface IStorage<Transaction> {
 
   persist(job: Job, transaction: Transaction): Promise<void>;
 
-  getNextJobs(jobName: string, batchSize: number, transaction: Transaction): Promise<Job[]>;
+  getNextJobs(jobName: JobNames, batchSize: number, transaction: Transaction): Promise<Job[]>;
 
   /** deletes the successful job, if the job data needs long term storage, handler needs to take care of that */
   success(jobs: Job[], transaction: Transaction): Promise<void>;

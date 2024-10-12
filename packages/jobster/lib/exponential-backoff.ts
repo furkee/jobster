@@ -1,5 +1,5 @@
-import { type Job } from './job.ts';
-import { type IRetryStrategy } from './retry-strategy.interface.ts';
+import type { Job } from "./job.ts";
+import type { IRetryStrategy } from "./retry-strategy.interface.ts";
 
 export type ExponentialBackoffOptions = {
   /** @default 5000 */
@@ -18,17 +18,17 @@ export class ExponentialBackoff implements IRetryStrategy {
   }
 
   onFailure(jobs: Job[]) {
-    jobs.forEach((job) => {
+    for (const job of jobs) {
       job.retries += 1;
       job.lastRunAt = new Date();
       job.createdAt = new Date();
       if (job.retries >= this.maxRetries) {
-        job.status = 'failure';
+        job.status = "failure";
         job.nextRunAfter = null;
       } else {
-        job.status = 'pending';
-        job.nextRunAfter = new Date(Date.now() + Math.pow(2, job.retries) * this.baseTimeoutMs);
+        job.status = "pending";
+        job.nextRunAfter = new Date(Date.now() + 2 ** job.retries * this.baseTimeoutMs);
       }
-    });
+    }
   }
 }
