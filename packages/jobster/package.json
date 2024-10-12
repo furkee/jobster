@@ -17,10 +17,10 @@
     "start": "node build/main.js",
     "build": "rm -rf build || true && tsc"
   },
-  "dependencies": {
+  "peerDependencies": {
     "eventemitter2": "^6.4.9"
   },
   "devDependencies": {
-    "@types/node": "^22.7.4"
+    "eventemitter2": "^6.4.9"
   }
 }

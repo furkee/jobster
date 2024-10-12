@@ -5,13 +5,8 @@
     "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.2.0",
-    "@typescript-eslint/parser": "^8.2.0",
-    "eslint": "^9.11.1",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.3.3",
+    "@biomejs/biome": "^1.9.3",
     "typescript": "^5.6.2",
-    "typescript-eslint": "^8.8.0"
+    "@types/node": "^22.7.4"
   }
 }

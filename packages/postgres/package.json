@@ -22,7 +22,6 @@
     "@jobster/core": "^0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^22.7.4",
     "@types/pg": "^8.11.10",
     "@jobster/core": "workspace:*",
     "pg": "^8.13.0"
