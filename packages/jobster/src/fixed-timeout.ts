@@ -1,19 +1,19 @@
 import type { Job } from "./entity/job.ts";
 import type { IRetryStrategy } from "./interface/retry-strategy.interface.ts";
 
-export type ExponentialBackoffOptions = {
+export type FixedTimeoutOptions = {
   /** @default 5000 */
-  baseTimeoutMs?: number;
+  timeoutMs?: number;
   /** @default 5 */
   maxRetries?: number;
 };
 
-export class ExponentialBackoff implements IRetryStrategy {
-  readonly baseTimeoutMs: number;
+export class FixedTimeout implements IRetryStrategy {
+  readonly timeoutMs: number;
   readonly maxRetries: number;
 
-  constructor({ baseTimeoutMs = 5000, maxRetries = 5 }: ExponentialBackoffOptions = {}) {
-    this.baseTimeoutMs = baseTimeoutMs;
+  constructor({ timeoutMs = 5000, maxRetries = 5 }: FixedTimeoutOptions = {}) {
+    this.timeoutMs = timeoutMs;
     this.maxRetries = maxRetries;
   }
 
@@ -27,7 +27,7 @@ export class ExponentialBackoff implements IRetryStrategy {
         job.nextRunAfter = null;
       } else {
         job.status = "pending";
-        job.nextRunAfter = new Date(Date.now() + 2 ** job.retries * this.baseTimeoutMs);
+        job.nextRunAfter = new Date(Date.now() + this.timeoutMs);
       }
     }
   }

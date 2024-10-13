@@ -1,4 +1,4 @@
-import type { JobsterTypes } from "./jobster-types.interface.ts";
+import type { JobsterTypes } from "../interface/jobster-types.interface.ts";
 
 export type JobStatus = "pending" | "running" | "success" | "failure";
 

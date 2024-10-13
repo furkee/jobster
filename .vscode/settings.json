@@ -2,6 +2,7 @@
   "javascript.preferences.importModuleSpecifierEnding": "js",
   "typescript.preferences.importModuleSpecifierEnding": "js",
   "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.preferences.importModuleSpecifier": "relative",
   "nodejs-testing.extensions": [
     {
       "extensions": ["ts"],

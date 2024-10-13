@@ -1,15 +1,5 @@
-import type { Job } from "./job.ts";
+import type { Job } from "../entity/job.ts";
 import type { JobsterTypes } from "./jobster-types.interface.ts";
-
-export type JobsterJobListener = {
-  id: string;
-  payload: {
-    /** jobs listened by the jobster instance */
-    jobNames: string[];
-  };
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 export type ListenerData = {
   numberOfListeners: number;

@@ -1,13 +1,13 @@
 import eventemitter from "eventemitter2";
 
-import type { IExecutor } from "./executor.interface.ts";
+import type { Job } from "./entity/job.ts";
 import { ExponentialBackoff } from "./exponential-backoff.ts";
-import type { Job } from "./job.ts";
-import type { JobsterTypes } from "./jobster-types.interface.ts";
-import { type ILogger, Logger } from "./logger.ts";
-import type { IRetryStrategy } from "./retry-strategy.interface.ts";
-import type { IStorage } from "./storage.interface.ts";
-import { times } from "./util.ts";
+import type { IExecutor } from "./interface/executor.interface.ts";
+import type { JobsterTypes } from "./interface/jobster-types.interface.ts";
+import type { IRetryStrategy } from "./interface/retry-strategy.interface.ts";
+import type { IStorage } from "./interface/storage.interface.ts";
+import { times } from "./util/array.ts";
+import { type ILogger, Logger } from "./util/logger.ts";
 import { Worker } from "./worker.ts";
 
 export type JobConfig = {

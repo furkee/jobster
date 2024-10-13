@@ -2,7 +2,8 @@ import {
   type IExecutor,
   type ILogger,
   type IStorage,
-  type Job,
+  Job,
+  type JobParams,
   type JobsterJobListener,
   type JobsterTypes,
   type ListenerData,
@@ -163,6 +164,10 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
   }
 
   async persist(jobs: Job[], transaction: Transaction) {
+    if (!jobs.length) {
+      return;
+    }
+
     await this.#run(
       /* sql */ `
       INSERT INTO "JobsterJobs" (
@@ -271,6 +276,6 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       [jobName, batchSize],
       transaction,
     );
-    return rows;
+    return rows.map((row: JobParams<Record<string, unknown>, JobsterTypes["jobNames"]>) => new Job(row));
   }
 }

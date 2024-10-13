@@ -1,13 +1,13 @@
 import type { EventEmitter2 } from "eventemitter2";
 
-import type { IExecutor } from "./executor.interface.ts";
-import type { Job } from "./job.ts";
-import type { JobsterTypes } from "./jobster-types.interface.ts";
+import type { Job } from "./entity/job.ts";
+import type { IExecutor } from "./interface/executor.interface.ts";
+import type { JobsterTypes } from "./interface/jobster-types.interface.ts";
+import type { IRetryStrategy } from "./interface/retry-strategy.interface.ts";
+import type { IStorage } from "./interface/storage.interface.ts";
 import type { JobHandler, JobsterEvent } from "./jobster.ts";
-import { type ILogger, Logger } from "./logger.ts";
-import type { IRetryStrategy } from "./retry-strategy.interface.ts";
-import type { IStorage } from "./storage.interface.ts";
-import { partition } from "./util.ts";
+import { partition } from "./util/array.ts";
+import { type ILogger, Logger } from "./util/logger.ts";
 
 export type WorkerOptions<Transaction = JobsterTypes["transaction"], JobNames = JobsterTypes["jobNames"]> = {
   batchSize: number;

@@ -16,8 +16,6 @@
     }
   },
   "scripts": {
-    "dev": "node --conditions=development --watch --no-warnings=ExperimentalWarning --experimental-strip-types src/main.ts",
-    "start": "node dist//src/main.js",
     "build": "rm -rf dist || true && tsc"
   },
   "peerDependencies": {
