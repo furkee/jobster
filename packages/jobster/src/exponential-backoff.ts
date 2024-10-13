@@ -22,7 +22,7 @@ export class ExponentialBackoff implements IRetryStrategy {
       job.retries += 1;
       job.lastRunAt = new Date();
       job.createdAt = new Date();
-      if (job.retries >= this.maxRetries) {
+      if (job.retries >= this.maxRetries + 1) {
         job.status = "failure";
         job.nextRunAfter = null;
       } else {

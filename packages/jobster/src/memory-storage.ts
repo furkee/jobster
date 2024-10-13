@@ -8,8 +8,10 @@ export class MemoryStorage implements IStorage<void> {
 
   async initialize() {}
 
-  async persist(job: Job) {
-    this.#jobs.set(job.id, job);
+  async persist(jobs: Job[]) {
+    for (const job of jobs) {
+      this.#jobs.set(job.id, job);
+    }
   }
 
   async success(jobs: Job[]) {

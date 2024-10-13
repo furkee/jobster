@@ -1,7 +1,16 @@
 {
 	"$schema": "https://biomejs.dev/schemas/1.9.3/schema.json",
 	"vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": true },
-	"files": { "ignoreUnknown": true, "ignore": [] },
+	"files": {
+		"ignoreUnknown": true,
+		"ignore": [
+			"**/dist",
+			"**/node_modules",
+			"**/pnpm-lock.yaml",
+			"**/pnpm-workspace.yaml"
+		],
+		"include": ["**/*.ts", "**/package.json", "**/biome.json", "**/tsconfig.json"]
+	},
 	"formatter": {
 		"enabled": true,
 		"formatWithErrors": false,
@@ -24,12 +33,6 @@
 				"noExplicitAny": "warn",
 				"noConfusingVoidType": "off"
 			}
-		},
-		"ignore": [
-			"**/dist",
-			"**/node_modules",
-			"**/pnpm-lock.yaml",
-			"**/pnpm-workspace.yaml"
-		]
+		}
 	}
 }

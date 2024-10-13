@@ -25,7 +25,7 @@ export interface IStorage<
   /** tell jobster you are still alive and get back number of listener per event */
   heartbeat(jobsterId: string, jobNames: string[], transaction: Transaction): Promise<Map<string, ListenerData>>;
 
-  persist(job: Job, transaction: Transaction): Promise<void>;
+  persist(jobs: Job[], transaction: Transaction): Promise<void>;
 
   getNextJobs(jobName: JobNames, batchSize: number, transaction: Transaction): Promise<Job[]>;
 

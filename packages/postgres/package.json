@@ -22,7 +22,11 @@
     "build": "rm -rf dist || true && tsc"
   },
   "peerDependencies": {
-    "@jobster/core": "^0.0.1"
+    "@jobster/core": "^0.0.1",
+    "pg": "^8.13.0"
+  },
+  "peerDependenciesMeta": {
+    "pg": { "optional": true }
   },
   "devDependencies": {
     "@types/pg": "^8.11.10",

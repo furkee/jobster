@@ -162,7 +162,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
     return listenerData;
   }
 
-  async persist(job: Job, transaction: Transaction) {
+  async persist(jobs: Job[], transaction: Transaction) {
     await this.#run(
       /* sql */ `
       INSERT INTO "JobsterJobs" (
@@ -176,19 +176,15 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         "createdAt",
         "updatedAt"
       )
-      VALUES (
-        ${this.#getQueryPlaceholder(0)},
-        ${this.#getQueryPlaceholder(1)},
-        ${this.#getQueryPlaceholder(2)},
-        ${this.#getQueryPlaceholder(3)},
-        ${this.#getQueryPlaceholder(4)},
-        ${this.#getQueryPlaceholder(5)},
-        ${this.#getQueryPlaceholder(6)},
-        ${this.#getQueryPlaceholder(7)},
-        ${this.#getQueryPlaceholder(8)}
-      );
+      VALUES ${jobs.map(
+        (job, index) =>
+          `(${new Array(9)
+            .fill(null)
+            .map((_, j) => this.#getQueryPlaceholder(index * 9 + j))
+            .join(",")})`,
+      )};
       `,
-      [
+      jobs.flatMap((job) => [
         job.id,
         job.name,
         JSON.stringify(job.payload),
@@ -198,10 +194,10 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         job.nextRunAfter?.toISOString() || null,
         job.createdAt.toISOString(),
         job.updatedAt.toISOString(),
-      ],
+      ]),
       transaction,
     );
-    this.#logger.debug(`Persisted job ${job.id}`);
+    this.#logger.debug(`Persisted ${jobs.length} jobs`);
   }
 
   async success(jobs: Job[], transaction: Transaction) {

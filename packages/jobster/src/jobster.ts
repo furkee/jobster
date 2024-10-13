@@ -125,8 +125,8 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
   }
 
   async start() {
-    await this.#heartbeat();
-    this.#heartbeatTimer = setInterval(() => this.#heartbeat(), this.#heartbeatFrequency);
+    await this.heartbeat();
+    this.#heartbeatTimer = setInterval(() => this.heartbeat(), this.#heartbeatFrequency);
 
     for (const workers of this.#workers.values()) {
       for (const worker of workers) {
@@ -137,7 +137,7 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
     this.#logger.debug("jobster started");
   }
 
-  async #heartbeat() {
+  async heartbeat() {
     const listenerData = await this.#executor.transaction((transaction) =>
       this.#storage.heartbeat(this.#jobsterId, Object.keys(this.#jobConfig), transaction),
     );
@@ -219,8 +219,8 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
     this.#jobEmitter.on(jobName, listener);
   }
 
-  async queue(job: Job, transaction: Transaction) {
-    await this.#storage.persist(job, transaction);
+  async queue(jobs: Job | Job[], transaction: Transaction) {
+    await this.#storage.persist(Array.isArray(jobs) ? jobs : [jobs], transaction);
   }
 
   listenJobsterEvents(event: JobsterEvent, listener: (data: unknown) => void) {
