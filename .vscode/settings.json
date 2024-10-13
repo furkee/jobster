@@ -5,7 +5,7 @@
   "nodejs-testing.extensions": [
     {
       "extensions": ["ts"],
-      "parameters": ["--no-warnings=ExperimentalWarning", "--experimental-strip-types"]
+      "parameters": ["--no-warnings=ExperimentalWarning", "--experimental-strip-types", "--conditions=development"]
     }
   ],
   "[javascript]": {

@@ -7,7 +7,7 @@ import pg from "pg";
 import { PgExecutor, PostgresStorage } from "../src/index.ts";
 
 suite("posgres", { timeout: 5000 }, () => {
-  let jobster: Jobster<pg.PoolClient>;
+  let jobster: Jobster<pg.PoolClient, "test">;
   let pool: pg.Pool;
   let executor: PgExecutor;
 
