@@ -55,7 +55,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         id UUID PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         payload JSONB NOT NULL,
-        status JobsterJobStatus NOT NULL DEFAULT 'pending',
+        status "JobsterJobStatus" NOT NULL DEFAULT 'pending',
         retries INTEGER NOT NULL DEFAULT 0,
         "lastRunAt" TIMESTAMP WITH TIME ZONE,
         "nextRunAfter" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

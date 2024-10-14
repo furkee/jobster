@@ -46,8 +46,7 @@ suite("mikro-orm", { timeout: 5000 }, () => {
   });
 
   afterEach(async () => {
-    jobster.stop();
-    await orm.em.execute('DELETE FROM "JobsterJobs"');
+    await jobster.stop();
   });
 
   test("does not persist job if the transaction fails", async () => {

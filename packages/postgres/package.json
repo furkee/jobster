@@ -1,7 +1,7 @@
 {
   "name": "@jobster/postgres",
   "version": "0.0.1",
-  "main": "src/index.ts",
+  "main": "./dist/src/index.js",
   "type": "module",
   "exports": {
     ".": {
@@ -11,7 +11,8 @@
       },
       "default": {
         "types": "./dist/src/index.d.ts",
-        "import": "./dist/src/index.js"
+        "import": "./dist/src/index.js",
+        "require": "./dist/src/index.js"
       }
     }
   },
@@ -23,7 +24,7 @@
   },
   "peerDependencies": {
     "@jobster/core": "^0.0.1",
-    "@mikro-orm/postgresql": "^6.3.13",
+    "@mikro-orm/postgresql": "^6.3.0",
     "pg": "^8.13.0"
   },
   "peerDependenciesMeta": {

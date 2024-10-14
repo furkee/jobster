@@ -1,7 +1,7 @@
 {
   "name": "@jobster/core",
   "version": "0.0.1",
-  "main": "src/index.ts",
+  "main": "./dist/src/index.js",
   "type": "module",
   "exports": {
     ".": {
@@ -11,7 +11,8 @@
       },
       "default": {
         "types": "./dist/src/index.d.ts",
-        "import": "./dist/src/index.js"
+        "import": "./dist/src/index.js",
+        "require": "./dist/src/index.js"
       }
     }
   },

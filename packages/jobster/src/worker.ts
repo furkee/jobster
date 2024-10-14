@@ -34,6 +34,7 @@ export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends 
   #status: "running" | "idling" = "idling";
   #storage: IStorage<Transaction, JobNames>;
   #timer: NodeJS.Timeout | undefined = undefined;
+  #promises = new Set<Promise<void>>();
 
   constructor({
     batchSize,
@@ -112,15 +113,19 @@ export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends 
     this.#status = "running";
 
     while (this.#status === "running") {
-      this.#execute(); // do not await so polling frequency is respected
+      // do not await so polling frequency is respected
+      const promise = this.#execute().finally(() => this.#promises.delete(promise));
+      this.#promises.add(promise);
       await new Promise((r) => {
         this.#timer = setTimeout(r, this.#pollFrequency);
       });
     }
   }
 
-  stop() {
+  async stop() {
     this.#status = "idling";
     clearTimeout(this.#timer);
+
+    await Promise.allSettled(Array.from(this.#promises));
   }
 }

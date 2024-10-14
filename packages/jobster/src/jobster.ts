@@ -52,8 +52,9 @@ export type JobsterOptions<
   executor: IExecutor<Transaction>;
   jobConfig: Record<JobNames, JobConfig>;
   /**
-   * heartbeat frequency in ms. jobster also scales its worker based on number of available jobs
-   * and number of jobster instances running.
+   * heartbeat frequency in ms. jobster also fetches active listeners data through the hearbeat
+   * query and scales its workers based on number of available jobs and number of jobster instances
+   * handling that job.
    *
    * @default 5000
    */
@@ -138,6 +139,7 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
 
   async heartbeat() {
     const listenerData = await this.#executor.transaction((transaction) =>
+      // TODO filter disabled jobs and also store the job config on DB to calculate ideal runner count
       this.#storage.heartbeat(this.#jobsterId, Object.keys(this.#jobConfig), transaction),
     );
 
@@ -177,7 +179,7 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
       });
 
       if (change > 0) {
-        const newWorkers = times(change, () => this.#createWorker(job as JobNames, this.#jobConfig[job as JobNames]!));
+        const newWorkers = times(change, () => this.#createWorker(job as JobNames, workerConfig));
         workers.concat(newWorkers);
 
         for (const worker of newWorkers) {
@@ -188,25 +190,24 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
       } else if (change < 0) {
         const removed = workers.splice(0, Math.abs(change));
 
-        for (const worker of removed) {
-          worker.start();
-        }
+        await Promise.all(removed.map((worker) => worker.stop()));
 
         this.#jobsterEmitter.emit("jobster.scale.down" as JobsterEvent, { job, change, numWorkers: workers.length });
       }
     }
   }
 
-  stop() {
+  async stop() {
     clearInterval(this.#heartbeatTimer);
+
+    await Promise.allSettled(
+      Array.from(this.#workers.values())
+        .flat()
+        .map((worker) => worker.stop()),
+    );
+
     this.#jobEmitter.removeAllListeners();
     this.#jobsterEmitter.removeAllListeners();
-
-    for (const workers of this.#workers.values()) {
-      for (const worker of workers) {
-        worker.stop();
-      }
-    }
 
     this.#logger.debug("jobster stopped");
   }

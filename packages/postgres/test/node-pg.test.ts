@@ -38,8 +38,7 @@ suite("node pg", { timeout: 5000 }, () => {
   });
 
   afterEach(async () => {
-    jobster.stop();
-    await pool.query('DELETE FROM "JobsterJobs"');
+    await jobster.stop();
   });
 
   test("does not persist job if the transaction fails", async () => {
