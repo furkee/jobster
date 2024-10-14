@@ -2,12 +2,12 @@ import { Job, Jobster, type JobsterTypes } from "@jobster/core";
 
 import pg from "pg";
 
-import { PgExecutor } from "./pg-executor.ts";
+import { NodePgExecutor } from "./executor/node-pg.executor.ts";
 import { PostgresStorage } from "./postgres-storage.ts";
 
 async function main() {
   const pool = new pg.Pool({ user: "dbadmin", password: "password", database: "jobster" });
-  const executor = new PgExecutor(pool);
+  const executor = new NodePgExecutor(pool);
   const storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
   const jobster = new Jobster({
     storage,

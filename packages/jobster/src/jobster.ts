@@ -23,8 +23,7 @@ export type JobConfig = {
    */
   batchSize?: number;
   /**
-   * poll frequency of the worker in milliseconds. this does not mean the polling takes place at a determined
-   * interval. worker will wait until job handler is finished, then wait `pollFrequency` ms before running again.
+   * poll frequency of the worker in milliseconds.
    *
    * @default 1000
    */

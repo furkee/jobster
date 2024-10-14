@@ -52,7 +52,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
     await this.#run(
       /* sql */ `
       CREATE TABLE IF NOT EXISTS "JobsterJobs" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id UUID PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         payload JSONB NOT NULL,
         status JobsterJobStatus NOT NULL DEFAULT 'pending',
@@ -84,8 +84,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         IF NOT EXISTS (
             SELECT 1
             FROM pg_indexes
-            WHERE schemaname = 'public'  -- Replace with your schema name if different
-            AND indexname = '${idxName}'
+            WHERE indexname = '${idxName}'
         ) THEN
             CREATE INDEX ${idxName} ON "JobsterJobs" ("${idxCol}");
         END IF;

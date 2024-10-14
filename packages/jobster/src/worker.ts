@@ -99,9 +99,8 @@ export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends 
 
     if (jobs.length) {
       this.#jobsterEmitter.emit("job.finished" as JobsterEvent, jobs);
+      this.#logger.debug(`worker ran in ${performance.now() - start} ms for ${jobs.length} jobs`);
     }
-
-    this.#logger.debug(`worker ran in ${performance.now() - start} ms, handled ${jobs.length} jobs`);
   }
 
   async start() {
@@ -111,10 +110,9 @@ export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends 
     }
 
     this.#status = "running";
-    this.#logger.info("worker is running");
 
     while (this.#status === "running") {
-      await this.#execute();
+      this.#execute(); // do not await so polling frequency is respected
       await new Promise((r) => {
         this.#timer = setTimeout(r, this.#pollFrequency);
       });

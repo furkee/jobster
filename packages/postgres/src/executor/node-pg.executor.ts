@@ -1,7 +1,7 @@
 import type { IExecutor } from "@jobster/core";
 import type pg from "pg";
 
-export class PgExecutor implements IExecutor<pg.PoolClient> {
+export class NodePgExecutor implements IExecutor<pg.PoolClient> {
   readonly pool: pg.Pool;
 
   constructor(pool: pg.Pool) {

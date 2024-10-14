@@ -17,20 +17,24 @@
   },
   "scripts": {
     "dev": "node --conditions=development --watch --no-warnings=ExperimentalWarning --experimental-strip-types src/main.ts",
-    "test": "node --conditions=development --test --no-warnings=ExperimentalWarning --experimental-strip-types test/**/*.test.ts",
+    "test": "node --conditions=development --test --test-concurrency=1 --no-warnings=ExperimentalWarning --experimental-strip-types test/**/*.test.ts",
     "start": "node dist/src/main.js",
     "build": "rm -rf dist || true && tsc"
   },
   "peerDependencies": {
     "@jobster/core": "^0.0.1",
+    "@mikro-orm/postgresql": "^6.3.13",
     "pg": "^8.13.0"
   },
   "peerDependenciesMeta": {
-    "pg": { "optional": true }
+    "pg": { "optional": true },
+    "@mikro-orm/postgresql": { "optional": true }
   },
   "devDependencies": {
-    "@types/pg": "^8.11.10",
     "@jobster/core": "workspace:*",
+    "@mikro-orm/core": "^6.3.13",
+    "@mikro-orm/postgresql": "^6.3.13",
+    "@types/pg": "^8.11.10",
     "pg": "^8.13.0"
   }
 }

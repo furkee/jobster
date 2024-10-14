@@ -4,16 +4,16 @@ import assert from "node:assert/strict";
 import { after, afterEach, before, beforeEach, mock, suite, test } from "node:test";
 import pg from "pg";
 
-import { PgExecutor, PostgresStorage } from "../src/index.ts";
+import { NodePgExecutor, PostgresStorage } from "../src/index.ts";
 
-suite("postgres", { timeout: 5000 }, () => {
+suite("node pg", { timeout: 5000 }, () => {
   let jobster: Jobster<pg.PoolClient, "test" | "batchTest">;
   let pool: pg.Pool;
-  let executor: PgExecutor;
+  let executor: NodePgExecutor;
 
   before(async () => {
     pool = new pg.Pool({ user: "dbadmin", password: "password", database: "jobster" });
-    executor = new PgExecutor(pool);
+    executor = new NodePgExecutor(pool);
     jobster = new Jobster({
       executor,
       storage: new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder }),
@@ -33,6 +33,7 @@ suite("postgres", { timeout: 5000 }, () => {
   });
 
   beforeEach(async () => {
+    await pool.query('DELETE FROM "JobsterJobs"');
     await jobster.start();
   });
 
