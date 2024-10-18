@@ -11,33 +11,22 @@ import {
 } from "@jobster/core";
 
 export type PostgresStorageOptions<Transaction> = {
-  run: IExecutor<Transaction>["run"];
-  /**
-   * Return the placeholder string based on the array index of the supplied values, eg
-   *
-   * SELECT * FROM SomeTable WHERE id = ? AND createdAt < ?
-   *
-   * Jobster will call this function twice for the above query, for the ID `?`, index will be 0 and ie node-postgres
-   * would expect you to return $1 where as mikroorm expects a single `?` for each dynamic value.
-   */
-  getQueryPlaceholder(index: number): string;
+  executor: IExecutor<Transaction>;
   logger?: ILogger;
 };
 
 export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implements IStorage<Transaction> {
   #logger: ILogger;
 
-  #run: PostgresStorageOptions<Transaction>["run"];
-  #getQueryPlaceholder: PostgresStorageOptions<Transaction>["getQueryPlaceholder"];
+  #executor: IExecutor<Transaction>;
 
-  constructor({ run, getQueryPlaceholder, logger }: PostgresStorageOptions<Transaction>) {
+  constructor({ executor, logger }: PostgresStorageOptions<Transaction>) {
     this.#logger = logger ?? new Logger(PostgresStorage.name);
-    this.#run = run;
-    this.#getQueryPlaceholder = getQueryPlaceholder;
+    this.#executor = executor;
   }
 
   async initialize(transaction: Transaction): Promise<void> {
-    await this.#run(
+    await this.#executor.run(
       /* sql */ `
       DO $$
       BEGIN
@@ -49,7 +38,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       [],
       transaction,
     );
-    await this.#run(
+    await this.#executor.run(
       /* sql */ `
       CREATE TABLE IF NOT EXISTS "JobsterJobs" (
         id UUID PRIMARY KEY,
@@ -66,7 +55,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       [],
       transaction,
     );
-    await this.#run(
+    await this.#executor.run(
       /* sql */ `
       CREATE TABLE IF NOT EXISTS "JobsterJobListeners" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,11 +80,11 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       END $$;
     `;
     await Promise.all([
-      this.#run(indexQuery("jobster_job_name_idx", "name"), [], transaction),
-      this.#run(indexQuery("jobster_job_status_idx", "status"), [], transaction),
-      this.#run(indexQuery("jobster_job_next_run_after_idx", "nextRunAfter"), [], transaction),
-      this.#run(indexQuery("jobster_job_created_at_idx", "createdAt"), [], transaction),
-      this.#run(indexQuery("jobster_job_updated_at_idx", "updatedAt"), [], transaction),
+      this.#executor.run(indexQuery("jobster_job_name_idx", "name"), [], transaction),
+      this.#executor.run(indexQuery("jobster_job_status_idx", "status"), [], transaction),
+      this.#executor.run(indexQuery("jobster_job_next_run_after_idx", "nextRunAfter"), [], transaction),
+      this.#executor.run(indexQuery("jobster_job_created_at_idx", "createdAt"), [], transaction),
+      this.#executor.run(indexQuery("jobster_job_updated_at_idx", "updatedAt"), [], transaction),
     ]);
     this.#logger.debug("postgres storage initialized ");
   }
@@ -104,15 +93,15 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
     const payload = JSON.stringify({ jobNames } as JobsterJobListener["payload"]);
     const [activeListeners, availableJobs] = await Promise.all([
       // collect active listener data
-      this.#run(
+      this.#executor.run(
         /* sql*/ `
-        SELECT * FROM "JobsterJobListeners" WHERE id != ${this.#getQueryPlaceholder(0)} AND "updatedAt" > NOW() - INTERVAL '1 minutes';
+        SELECT * FROM "JobsterJobListeners" WHERE id != ${this.#executor.getQueryPlaceholder(0)} AND "updatedAt" > NOW() - INTERVAL '1 minutes';
       `,
         [jobsterId],
         transaction,
       ) as Promise<JobsterJobListener[]>,
       // collect available number of jobs per jobName
-      this.#run(
+      this.#executor.run(
         /* sql */ `
         SELECT name, COUNT(*) as count FROM "JobsterJobs"
           WHERE (
@@ -128,18 +117,18 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         transaction,
       ) as Promise<{ name: string; count: number }[]>,
       // insert current jobster into jobster listeners table
-      this.#run(
+      this.#executor.run(
         /* sql */ `
         INSERT INTO "JobsterJobListeners" (id, payload)
-          VALUES (${this.#getQueryPlaceholder(0)}, ${this.#getQueryPlaceholder(1)})
+          VALUES (${this.#executor.getQueryPlaceholder(0)}, ${this.#executor.getQueryPlaceholder(1)})
         ON CONFLICT (id)
-          DO UPDATE SET payload = ${this.#getQueryPlaceholder(2)}, "updatedAt" = ${this.#getQueryPlaceholder(3)}
+          DO UPDATE SET payload = ${this.#executor.getQueryPlaceholder(2)}, "updatedAt" = ${this.#executor.getQueryPlaceholder(3)}
       `,
         [jobsterId, payload, payload, new Date().toISOString()],
         transaction,
       ),
       // cleanup inactive jobster listeners
-      this.#run(
+      this.#executor.run(
         /* sql */ `DELETE FROM "JobsterJobListeners" where "updatedAt" < NOW() - INTERVAL '5 minutes'`,
         [],
         transaction,
@@ -167,7 +156,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       return;
     }
 
-    await this.#run(
+    await this.#executor.run(
       /* sql */ `
       INSERT INTO "JobsterJobs" (
         id,
@@ -184,7 +173,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
         (job, index) =>
           `(${new Array(9)
             .fill(null)
-            .map((_, j) => this.#getQueryPlaceholder(index * 9 + j))
+            .map((_, j) => this.#executor.getQueryPlaceholder(index * 9 + j))
             .join(",")})`,
       )};
       `,
@@ -205,8 +194,8 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
   }
 
   async success(jobs: Job[], transaction: Transaction) {
-    await this.#run(
-      /* sql */ `DELETE FROM "JobsterJobs" WHERE id IN (${jobs.map((_, i) => `${this.#getQueryPlaceholder(i)}`).join(",")})`,
+    await this.#executor.run(
+      /* sql */ `DELETE FROM "JobsterJobs" WHERE id IN (${jobs.map((_, i) => `${this.#executor.getQueryPlaceholder(i)}`).join(",")})`,
       jobs.map((job) => job.id),
       transaction,
     );
@@ -217,7 +206,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       return;
     }
 
-    await this.#run(
+    await this.#executor.run(
       /* sql */ `
       UPDATE "JobsterJobs" AS j SET
         status = (v.status)::JobsterJobStatus,
@@ -231,7 +220,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
               (job, i) =>
                 `(${new Array(6)
                   .fill(null)
-                  .map((_, j) => this.#getQueryPlaceholder(i * 6 + j))
+                  .map((_, j) => this.#executor.getQueryPlaceholder(i * 6 + j))
                   .join(",")})`,
             )
             .join(",")}
@@ -251,7 +240,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
   }
 
   async getNextJobs(jobName: string, batchSize: number, transaction: Transaction) {
-    const rows = await this.#run(
+    const rows = await this.#executor.run(
       /* sql */ `
       UPDATE "JobsterJobs" SET
         status = 'running',
@@ -259,7 +248,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
       WHERE id IN (
         SELECT id FROM "JobsterJobs"
           WHERE
-            name = ${this.#getQueryPlaceholder(0)} AND ((
+            name = ${this.#executor.getQueryPlaceholder(0)} AND ((
               status = 'pending'
                 AND "nextRunAfter" < NOW()
               ) OR (
@@ -267,7 +256,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
                 AND "updatedAt" < NOW() - INTERVAL '1 minutes'
             ))
           ORDER BY "createdAt" ASC
-          LIMIT ${this.#getQueryPlaceholder(1)}
+          LIMIT ${this.#executor.getQueryPlaceholder(1)}
           FOR UPDATE SKIP LOCKED
       )
       RETURNING *;

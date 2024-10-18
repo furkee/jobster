@@ -1,10 +1,13 @@
-import type { IExecutor } from "@jobster/core";
+import { type IExecutor, type ILogger, Logger } from "@jobster/core";
 import type pg from "pg";
 
 export class NodePgExecutor implements IExecutor<pg.PoolClient> {
+  #logger: ILogger;
+
   readonly pool: pg.Pool;
 
-  constructor(pool: pg.Pool) {
+  constructor({ pool, logger }: { pool: pg.Pool; logger?: ILogger }) {
+    this.#logger = logger ?? new Logger(NodePgExecutor.name);
     this.pool = pool;
   }
 
@@ -28,7 +31,7 @@ export class NodePgExecutor implements IExecutor<pg.PoolClient> {
       const data = await client.query(sql, params);
       return data.rows;
     } catch (e) {
-      console.log({ sql, params });
+      this.#logger.debug({ message: "failed sql", sql, params });
       throw e;
     }
   }

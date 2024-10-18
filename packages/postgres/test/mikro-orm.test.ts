@@ -21,10 +21,10 @@ suite("mikro-orm", { timeout: 5000 }, () => {
       validate: false,
       discovery: { warnWhenNoEntities: false },
     });
-    executor = new MikroOrmExecutor(orm.em);
+    executor = new MikroOrmExecutor({ em: orm.em });
     jobster = new Jobster({
       executor,
-      storage: new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder }),
+      storage: new PostgresStorage({ executor }),
       jobConfig: {
         test: { pollFrequency: 0, batchSize: 1, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },
         batchTest: { pollFrequency: 0, batchSize: 50, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },

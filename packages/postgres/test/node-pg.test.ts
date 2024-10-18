@@ -13,13 +13,13 @@ suite("node pg", { timeout: 5000 }, () => {
 
   before(async () => {
     pool = new pg.Pool({ user: "dbadmin", password: "password", database: "jobster" });
-    executor = new NodePgExecutor(pool);
+    executor = new NodePgExecutor({ pool });
     jobster = new Jobster({
       executor,
-      storage: new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder }),
+      storage: new PostgresStorage({ executor }),
       jobConfig: {
-        test: { pollFrequency: 0, batchSize: 1, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },
-        batchTest: { pollFrequency: 0, batchSize: 50, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },
+        test: { pollFrequency: 100, batchSize: 1, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },
+        batchTest: { pollFrequency: 100, batchSize: 50, retryStrategy: new ExponentialBackoff({ maxRetries: 0 }) },
       },
     });
 

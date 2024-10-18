@@ -1,4 +1,4 @@
-import { Job, Jobster, type JobsterTypes } from "@jobster/core";
+import { Job, Jobster } from "@jobster/core";
 import { MikroORM, PostgreSqlDriver } from "@mikro-orm/postgresql";
 import pg from "pg";
 
@@ -19,9 +19,9 @@ async function main() {
     validate: false,
     discovery: { warnWhenNoEntities: false },
   });
-  const executor = new MikroOrmExecutor(orm.em);
-  const _executor = new NodePgExecutor(pool);
-  const storage = new PostgresStorage({ run: executor.run, getQueryPlaceholder: executor.getQueryPlaceholder });
+  const executor = new MikroOrmExecutor({ em: orm.em });
+  const _executor = new NodePgExecutor({ pool });
+  const storage = new PostgresStorage({ executor });
   jobster = new Jobster({
     storage,
     executor,
@@ -38,7 +38,6 @@ async function main() {
       },
     },
   });
-  (({}) as JobsterTypes).jobNames;
   await jobster.initialize();
 
   jobster.listen("test", async ([job]) => {

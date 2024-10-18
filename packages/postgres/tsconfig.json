@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "customConditions": ["development"],
     "module": "NodeNext",
     "target": "ES6",
     "moduleResolution": "NodeNext",
@@ -22,5 +23,6 @@
     "composite": true
   },
   "include": ["src"],
+  "exclude": ["./src/main.ts"],
   "references": [{ "path": "../jobster" }]
 }

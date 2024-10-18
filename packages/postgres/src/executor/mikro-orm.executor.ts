@@ -1,11 +1,13 @@
-import type { IExecutor } from "@jobster/core";
+import { type IExecutor, type ILogger, Logger } from "@jobster/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 
 export class MikroOrmExecutor implements IExecutor<EntityManager> {
+  #logger: ILogger;
   readonly em: EntityManager;
 
-  constructor(em: EntityManager) {
+  constructor({ em, logger }: { em: EntityManager; logger?: ILogger }) {
     this.em = em;
+    this.#logger = logger || new Logger(MikroOrmExecutor.name);
   }
 
   async transaction<T>(callback: (client: EntityManager) => Promise<T>) {
@@ -26,7 +28,7 @@ export class MikroOrmExecutor implements IExecutor<EntityManager> {
     try {
       return await em.execute(sql, params);
     } catch (e) {
-      console.log({ sql, params });
+      this.#logger.debug({ message: "failed sql", sql, params });
       throw e;
     }
   }

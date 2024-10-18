@@ -1,22 +1,22 @@
-import util from 'node:util';
+import util from "node:util";
 
-type LogLevel = 'debug' | 'info' | 'log' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "log" | "warn" | "error";
 
 export interface ILogger extends Pick<Console, LogLevel> {}
 
-const COLORS: Record<LogLevel | 'reset', string> = {
-  debug: '\x1b[36m', // Cyan
-  info: '\x1b[32m', // Green
-  log: '\x1b[32m', // Green
-  warn: '\x1b[33m', // Yellow
-  error: '\x1b[31m', // Red
-  reset: '\x1b[0m', // Reset color
+const COLORS: Record<LogLevel | "reset", string> = {
+  debug: "\x1b[36m",
+  info: "\x1b[32m",
+  log: "\x1b[32m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
+  reset: "\x1b[0m",
 };
 
 export class Logger implements ILogger {
   loggerName?: string;
   // @ts-ignore
-  #fancyLogsEnabled = process.env.NODE_ENV !== 'production' && !!util.getCallSite;
+  #fancyLogsEnabled = process.env.NODE_ENV !== "production" && !!util.getCallSite;
 
   constructor(loggerName?: string) {
     this.loggerName = loggerName;
@@ -36,38 +36,38 @@ export class Logger implements ILogger {
     }
 
     const { scriptName, lineNumber } = this.#getCallerData();
-    const fileName = this.loggerName ?? scriptName.split('/').pop();
+    const fileName = this.loggerName ?? scriptName.split("/").pop();
     const timestamp = new Date().toISOString();
     const color = COLORS[level] || COLORS.info;
     const formattedMessage =
-      typeof message === 'object' && message instanceof Error === false
-        ? `${message.message || ''} - ${JSON.stringify(message, null, 2)}`
+      typeof message === "object" && message instanceof Error === false
+        ? `${message.message || ""} - ${JSON.stringify(message, null, 2)}`
         : message instanceof Error
           ? message.message
           : message;
-    const errorStack = message instanceof Error ? `\n${message.stack}` : '';
+    const errorStack = message instanceof Error ? `\n${message.stack}` : "";
     const logOutput = `${color}[${level.toUpperCase()}] [${fileName}:${lineNumber}] - ${timestamp}${COLORS.reset} - ${formattedMessage} ${errorStack}`;
 
     console[level](logOutput, ...optionalParams);
   }
 
   debug(message: any, ...optionalParams: any[]) {
-    this.#log('debug', message, ...optionalParams);
+    this.#log("debug", message, ...optionalParams);
   }
 
   info(message: any, ...optionalParams: any[]) {
-    this.#log('info', message, ...optionalParams);
+    this.#log("info", message, ...optionalParams);
   }
 
   log(message: any, ...optionalParams: any[]) {
-    this.#log('log', message, ...optionalParams);
+    this.#log("log", message, ...optionalParams);
   }
 
   warn(message: any, ...optionalParams: any[]) {
-    this.#log('warn', message, ...optionalParams);
+    this.#log("warn", message, ...optionalParams);
   }
 
   error(message: any, ...optionalParams: any[]) {
-    this.#log('error', message, ...optionalParams);
+    this.#log("error", message, ...optionalParams);
   }
 }

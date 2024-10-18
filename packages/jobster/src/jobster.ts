@@ -190,7 +190,7 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
       } else if (change < 0) {
         const removed = workers.splice(0, Math.abs(change));
 
-        await Promise.all(removed.map((worker) => worker.stop()));
+        await Promise.allSettled(removed.map((worker) => worker.stop()));
 
         this.#jobsterEmitter.emit("jobster.scale.down" as JobsterEvent, { job, change, numWorkers: workers.length });
       }
