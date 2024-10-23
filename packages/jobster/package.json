@@ -20,7 +20,7 @@
     "build": "rm -rf dist || true && tsc"
   },
   "peerDependencies": {
-    "eventemitter2": "^6.4.9"
+    "eventemitter2": "^6.0.0"
   },
   "devDependencies": {
     "eventemitter2": "^6.4.9"
