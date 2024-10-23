@@ -28,7 +28,7 @@ export class MikroOrmExecutor implements IExecutor<EntityManager> {
     try {
       return await em.execute(sql, params);
     } catch (e) {
-      this.#logger.debug({ message: "failed sql", sql, params });
+      this.#logger.error(e, { sql, params })
       throw e;
     }
   }

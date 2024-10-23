@@ -31,7 +31,7 @@ export class NodePgExecutor implements IExecutor<pg.PoolClient> {
       const data = await client.query(sql, params);
       return data.rows;
     } catch (e) {
-      this.#logger.debug({ message: "failed sql", sql, params });
+      this.#logger.error(e, { sql, params })
       throw e;
     }
   }

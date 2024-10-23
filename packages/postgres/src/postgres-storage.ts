@@ -209,7 +209,7 @@ export class PostgresStorage<Transaction = JobsterTypes["transaction"]> implemen
     await this.#executor.run(
       /* sql */ `
       UPDATE "JobsterJobs" AS j SET
-        status = (v.status)::JobsterJobStatus,
+        status = (v.status)::"JobsterJobStatus",
         retries = (v.retries)::int,
         "lastRunAt" = (v."lastRunAt")::timestamp,
         "nextRunAfter" = (v."nextRunAfter")::timestamp,
