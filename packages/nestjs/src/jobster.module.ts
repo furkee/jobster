@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { DiscoveryModule } from "@nestjs/core";
 
-import { ListenerDiscoveryService } from "./listener-discovery.service.js";
+import { ListenerDiscoveryService } from "./listener-discovery.service";
 
 @Module({})
 export class JobsterModule implements OnApplicationBootstrap, OnApplicationShutdown {

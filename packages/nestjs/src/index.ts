@@ -1,2 +1,2 @@
 export { JobsterModule } from "./jobster.module";
-export { ObJobsterJob } from "./on-jobster-job.decorator";
+export { OnJobsterJob } from "./on-jobster-job.decorator";

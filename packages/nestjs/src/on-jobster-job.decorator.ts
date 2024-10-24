@@ -2,7 +2,7 @@ import type { JobsterTypes } from "@jobster/core";
 
 export const JOBSTER_JOB_LISTENER = "JOBSTER_JOB_LISTENER";
 
-export function ObJobsterJob(jobName: JobsterTypes["jobNames"]): MethodDecorator {
+export function OnJobsterJob(jobName: JobsterTypes["jobNames"]): MethodDecorator {
   return (target, property, descriptor) => {
     if (!descriptor.value) {
       throw new Error();

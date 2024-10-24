@@ -1,11 +1,13 @@
 import { Jobster } from "@jobster/core";
-import { Injectable, type OnApplicationBootstrap } from "@nestjs/common";
+import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 import { DiscoveryService, MetadataScanner } from "@nestjs/core";
 
-import { JOBSTER_JOB_LISTENER } from "./on-jobster-job.decorator.js";
+import { JOBSTER_JOB_LISTENER } from "./on-jobster-job.decorator";
 
 @Injectable()
 export class ListenerDiscoveryService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(ListenerDiscoveryService.name);
+
   constructor(
     private readonly jobster: Jobster,
     private readonly discoveryService: DiscoveryService,
@@ -27,6 +29,7 @@ export class ListenerDiscoveryService implements OnApplicationBootstrap {
         if (Reflect.hasMetadata(JOBSTER_JOB_LISTENER, prototype[methodName])) {
           const jobName = Reflect.getMetadata(JOBSTER_JOB_LISTENER, prototype[methodName]);
           this.jobster.listen(jobName, instance[methodName].bind(instance));
+          this.logger.debug(`Registered ${wrapper.name}.${methodName} to listen "${jobName}"`);
         }
       }
     }

@@ -38,6 +38,9 @@ importers:
       '@mikro-orm/core':
         specifier: ^6.3.13
         version: 6.3.13
+      '@mikro-orm/nestjs':
+        specifier: ^6.0.2
+        version: 6.0.2(@mikro-orm/core@6.3.13)(@nestjs/common@10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.6(@nestjs/common@10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1))
       '@mikro-orm/postgresql':
         specifier: ^6.3.13
         version: 6.3.13(@mikro-orm/core@6.3.13)
@@ -161,6 +164,14 @@ packages:
         optional: true
       mariadb:
         optional: true
+
+  '@mikro-orm/nestjs@6.0.2':
+    resolution: {integrity: sha512-3bUBnJ0HwwIjsNPb0n7dfTWayqA5iSLHv/zM9juyBADSpJB2oBAd96QlUqDvNi/RckSg0m+ifLVT0Uw8e0+POg==}
+    engines: {node: '>= 18.12.0'}
+    peerDependencies:
+      '@mikro-orm/core': ^6.0.0 || ^6.0.0-dev.0
+      '@nestjs/common': ^10.0.0
+      '@nestjs/core': ^10.0.0
 
   '@mikro-orm/postgresql@6.3.13':
     resolution: {integrity: sha512-0U2/wW4ff/DNMTNRhe3TE/SHibrI7loPuBQffjHZCWWs8KPjI46EN4oTjvY7LNNOPWzfS+UpxafNHUR+zrfuZQ==}
@@ -747,6 +758,12 @@ snapshots:
       - sqlite3
       - supports-color
       - tedious
+
+  '@mikro-orm/nestjs@6.0.2(@mikro-orm/core@6.3.13)(@nestjs/common@10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.6(@nestjs/common@10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1))':
+    dependencies:
+      '@mikro-orm/core': 6.3.13
+      '@nestjs/common': 10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/core': 10.4.6(@nestjs/common@10.4.6(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1)
 
   '@mikro-orm/postgresql@6.3.13(@mikro-orm/core@6.3.13)':
     dependencies:
