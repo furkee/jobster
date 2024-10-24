@@ -5,5 +5,6 @@ export { type IStorage, type ListenerData } from "./interface/storage.interface.
 export { type IExecutor } from "./interface/executor.interface.ts";
 export { type IRetryStrategy } from "./interface/retry-strategy.interface.ts";
 export { ExponentialBackoff } from "./exponential-backoff.ts";
+export { FixedTimeout } from "./fixed-timeout.ts";
 export { Logger, type ILogger } from "./util/logger.ts";
 export { type JobsterTypes } from "./interface/jobster-types.interface.ts";

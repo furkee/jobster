@@ -1,30 +1,29 @@
-import { Jobster, type JobsterOptions } from "@jobster/core";
-import { MikroOrmExecutor, PostgresStorage } from "@jobster/postgres";
-import { MikroORM } from "@mikro-orm/postgresql";
+import { Jobster } from "@jobster/core";
 import {
-  type DynamicModule,
   Module,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
   type Provider,
+  type Type,
 } from "@nestjs/common";
 import { DiscoveryModule } from "@nestjs/core";
 
 import { ListenerDiscoveryService } from "./listener-discovery.service";
 
+type JobsterProvider<T extends Type> = {
+  useFactory: (transactionProvider: InstanceType<T>) => Jobster;
+  inject: T[];
+};
+
 @Module({})
 export class JobsterModule implements OnApplicationBootstrap, OnApplicationShutdown {
   constructor(private readonly jobster: Jobster) {}
 
-  static forRoot(opts: Omit<JobsterOptions, "executor" | "storage">): DynamicModule {
+  static async forRoot<T extends Type>(opts: JobsterProvider<T>) {
     const jobsterProvider: Provider = {
       provide: Jobster,
-      useFactory: (orm: MikroORM) => {
-        const executor = new MikroOrmExecutor({ em: orm.em });
-        const storage = new PostgresStorage({ executor });
-        return new Jobster({ ...opts, executor, storage });
-      },
-      inject: [MikroORM],
+      useFactory: opts.useFactory,
+      inject: opts.inject,
     };
     return {
       module: JobsterModule,

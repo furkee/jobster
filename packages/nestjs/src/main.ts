@@ -1,9 +1,10 @@
-import { Job, Jobster, Logger } from "@jobster/core";
+import { FixedTimeout, Job, Jobster } from "@jobster/core";
 import { MikroOrmModule } from "@mikro-orm/nestjs";
 import { EntityManager, PostgreSqlDriver } from "@mikro-orm/postgresql";
 import { Injectable, Module, type OnModuleInit } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 
+import { MikroOrmExecutor, PostgresStorage } from "@jobster/postgres";
 import { JobsterModule } from "./jobster.module";
 import { OnJobsterJob } from "./on-jobster-job.decorator";
 
@@ -37,7 +38,18 @@ class JobService implements OnModuleInit {
       discovery: { warnWhenNoEntities: false },
     }),
     JobsterModule.forRoot({
-      jobConfig: { test: {} },
+      inject: [EntityManager],
+      useFactory: (em) => {
+        const executor = new MikroOrmExecutor({ em });
+        const storage = new PostgresStorage({ executor });
+        return new Jobster({
+          executor,
+          storage,
+          jobConfig: {
+            test: { retryStrategy: new FixedTimeout({ maxRetries: 3, timeoutMs: 2500 }) },
+          },
+        });
+      },
     }),
   ],
   providers: [JobService],
