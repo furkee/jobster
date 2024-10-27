@@ -5,6 +5,11 @@
   "typescript.preferences.importModuleSpecifier": "relative",
   "nodejs-testing.extensions": [
     {
+      "filePatterns": ["packages/nestjs"],
+      "extensions": ["ts"],
+      "parameters": ["--experimental-require-module", "--require", "ts-node/register"]
+    },
+    {
       "extensions": ["ts"],
       "parameters": ["--no-warnings=ExperimentalWarning", "--experimental-strip-types", "--conditions=development"]
     }

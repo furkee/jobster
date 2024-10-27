@@ -13,7 +13,7 @@ import { Worker } from "./worker.ts";
 export type JobConfig = {
   /** @default 1 */
   minWorkers?: number;
-  /** @default 20 */
+  /** @default 5 */
   maxWorkers?: number;
   /**
    * how many jobs the worker should fetch per iteration. by default each worker will handle
@@ -125,7 +125,6 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
   }
 
   async start() {
-    await this.heartbeat();
     this.#heartbeatTimer = setInterval(() => this.heartbeat(), this.#heartbeatFrequency);
 
     for (const workers of this.#workers.values()) {
@@ -157,14 +156,14 @@ export class Jobster<Transaction = JobsterTypes["transaction"], JobNames extends
         this.#workers.set(job as JobNames, workers);
       }
 
-      const { minWorkers = 1, maxWorkers = 20, batchSize = 1 } = workerConfig;
+      const { minWorkers = 1, maxWorkers = 5, batchSize = 1 } = workerConfig;
       const numActiveWorkers = workers.length;
       const idealNumWorkers = Math.round(numberOfPendingJobs / (numberOfListeners * batchSize));
       let change = idealNumWorkers - numActiveWorkers;
 
-      if (change > maxWorkers) {
+      if (idealNumWorkers > maxWorkers) {
         change = maxWorkers - numActiveWorkers;
-      } else if (change < minWorkers) {
+      } else if (idealNumWorkers < minWorkers) {
         change = minWorkers - numActiveWorkers;
       }
 

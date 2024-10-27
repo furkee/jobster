@@ -1,11 +1,11 @@
 import { Jobster } from "@jobster/core";
-import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { DiscoveryService, MetadataScanner } from "@nestjs/core";
 
 import { JOBSTER_JOB_LISTENER } from "./on-jobster-job.decorator";
 
 @Injectable()
-export class ListenerDiscoveryService implements OnApplicationBootstrap {
+export class ListenerDiscoveryService {
   private readonly logger = new Logger(ListenerDiscoveryService.name);
 
   constructor(
@@ -14,7 +14,7 @@ export class ListenerDiscoveryService implements OnApplicationBootstrap {
     private readonly metadataScanner: MetadataScanner,
   ) {}
 
-  onApplicationBootstrap() {
+  discoverListeners() {
     const providers = this.discoveryService.getProviders();
 
     for (const wrapper of providers) {

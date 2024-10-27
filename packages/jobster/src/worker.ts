@@ -79,7 +79,6 @@ export class Worker<Transaction = JobsterTypes["transaction"], JobNames extends 
           }
 
           const [res]: Awaited<ReturnType<JobHandler>>[] = await this.#emitter.emitAsync(jobs[0].name, jobs);
-          // TODO make sure failedJobIds are all correct IDs and are all part of jobs
           const failedJobSet = new Set(res ? res.failedJobIds : null);
           const [failedJobs, succeededJobs] = partition(jobs, (job) => failedJobSet.has(job.id));
 

@@ -11,13 +11,18 @@ import { DiscoveryModule } from "@nestjs/core";
 import { ListenerDiscoveryService } from "./listener-discovery.service";
 
 type JobsterProvider<T extends Type> = {
+  /** @default true */
+  global?: boolean;
   useFactory: (transactionProvider: InstanceType<T>) => Jobster;
   inject: T[];
 };
 
 @Module({})
 export class JobsterModule implements OnApplicationBootstrap, OnApplicationShutdown {
-  constructor(private readonly jobster: Jobster) {}
+  constructor(
+    private readonly jobster: Jobster,
+    private readonly discovery: ListenerDiscoveryService,
+  ) {}
 
   static async forRoot<T extends Type>(opts: JobsterProvider<T>) {
     const jobsterProvider: Provider = {
@@ -27,7 +32,7 @@ export class JobsterModule implements OnApplicationBootstrap, OnApplicationShutd
     };
     return {
       module: JobsterModule,
-      global: true,
+      global: opts.global ?? true,
       imports: [DiscoveryModule],
       providers: [jobsterProvider, ListenerDiscoveryService],
       exports: [Jobster],
@@ -36,6 +41,7 @@ export class JobsterModule implements OnApplicationBootstrap, OnApplicationShutd
 
   async onApplicationBootstrap() {
     await this.jobster.initialize();
+    this.discovery.discoverListeners();
     await this.jobster.start();
   }
 
